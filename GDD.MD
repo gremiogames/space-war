@@ -141,7 +141,7 @@ Não aplicável (jogo 100% 2D).
 
 Sound
 Ambient
-Som ambiente espacial
+Som ambiente/ musica espacial
 Sons de energia
 
 Player
@@ -150,6 +150,7 @@ Som de recarga
 Som de ativação de escudo
 Som de dano
 Som de explosão
+Som de alarme quando está na ultima vida
 
 Code
 Script de decisão simultânea
