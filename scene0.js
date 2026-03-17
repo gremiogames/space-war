@@ -3,151 +3,91 @@ class scene0 extends Phaser.Scene {
     super("scene0");
 
     this.player;
+    this.player2;
     this.stars;
     this.bombs;
     this.platforms;
     this.cursors;
+    this.button;
+    this.tiro;
     this.score = 0;
     this.gameOver = false;
     this.scoreText;
   }
 
   preload() {
-    this.load.image("sky", "assets/sky.png");
-    this.load.image("ground", "assets/platform.png");
-    this.load.image("star", "assets/star.png");
-    this.load.image("bomb", "assets/bomb.png");
-    this.load.spritesheet("dude", "assets/dude.png", {
-      frameWidth: 32,
-      frameHeight: 48,
+    this.load.spritesheet("player1", "assets/player_b_m.png", {
+      frameWidth: 64,
+      frameHeight: 64,
     });
+    this.load.spritesheet("player2", "assets/Alien-Frigate(3).png", {
+      frameWidth: 90,
+      frameHeight: 90,
+    });
+
+    this.load.spritesheet("shotbutton", "assets/Enemy_Destroy_Bonus.png", {
+      frameWidth: 300,
+      frameHeight: 300,
+    });
+
+    this.load.image(
+      "sheet",
+      "assets/game-assets/Personagem/SpaceRage/SpaceRage/spritesheet.png",
+    );
   }
 
   create() {
-    this.add.image(400, 300, "sky");
+    const x = this.scale.width / 2;
+    const y = this.scale.height - 75;
+    const yOpposite = 75;
 
-    this.platforms = this.physics.add.staticGroup();
-    this.platforms.create(400, 568, "ground").setScale(2).refreshBody();
-    this.platforms.create(600, 400, "ground");
-    this.platforms.create(50, 250, "ground");
-    this.platforms.create(750, 220, "ground");
+    this.player = this.physics.add
+      .sprite(x, y, "player1")
+      .setOrigin(0.5, 1)
+      .setImmovable(true);
 
-    this.player = this.physics.add.sprite(100, 450, "dude");
-    this.player.setBounce(0.2);
-    this.player.setCollideWorldBounds(true);
+    this.player.body.setAllowGravity(false);
 
-    this.anims.create({
-      key: "left",
-      frames: this.anims.generateFrameNumbers("dude", { start: 0, end: 3 }),
-      frameRate: 10,
-      repeat: -1,
-    });
+    this.player2 = this.physics.add
+      .sprite(x, yOpposite, "player2")
+      .setOrigin(0.5, 0)
+      .setImmovable(true);
 
-    this.anims.create({
-      key: "turn",
-      frames: [{ key: "dude", frame: 4 }],
-      frameRate: 20,
-    });
+    this.player2.body.setAllowGravity(false);
 
-    this.anims.create({
-      key: "right",
-      frames: this.anims.generateFrameNumbers("dude", { start: 5, end: 8 }),
-      frameRate: 10,
-      repeat: -1,
-    });
+    // Botao de tiro clicavel na tela.
+    this.button = this.add
+      .sprite(600, 500, "shotbutton", 10)
+      .setScale(2.0)
+      .setDisplaySize(64, 64)
+      .setInteractive();
 
-    this.cursors = this.input.keyboard.createCursorKeys();
+    // Registra o frame plasma_1 dentro da textura "sheet".
+    this.textures.get("sheet").add("plasma_1", 0, 30, 2, 6, 21);
 
-    this.stars = this.physics.add.group({
-      key: "star",
-      repeat: 11,
-      setXY: { x: 12, y: 0, stepX: 70 },
-    });
+    // Tiro inicia escondido e aparece ao clicar no botao.
+    this.tiro = this.add
+      .image(x, y - 80, "sheet", "plasma_1")
+      .setScale(3.2)
+      .setVisible(false);
 
-    this.stars.children.iterate(function (child) {
-      child.setBounceY(Phaser.Math.FloatBetween(0.4, 0.8));
-    });
+    this.button.on("pointerdown", () => {
+      // Evita dois tiros ao mesmo tempo.
+      if (this.tiro.visible) return;
 
-    this.bombs = this.physics.add.group();
+      this.tiro.setPosition(this.player.x, this.player.y - 80).setVisible(true);
 
-    this.scoreText = this.add.text(16, 16, "score: 0", {
-      fontSize: "32px",
-      fill: "#000",
-    });
-
-    this.physics.add.collider(this.player, this.platforms);
-    this.physics.add.collider(this.stars, this.platforms);
-    this.physics.add.collider(this.bombs, this.platforms);
-
-    this.physics.add.overlap(
-      this.player,
-      this.stars,
-      this.collectStar,
-      null,
-      this,
-    );
-    this.physics.add.collider(
-      this.player,
-      this.bombs,
-      this.hitBomb,
-      null,
-      this,
-    );
-  }
-
-  update() {
-    if (this.gameOver) {
-      return;
-    }
-
-    if (this.cursors.left.isDown) {
-      this.player.setVelocityX(-160);
-
-      this.player.anims.play("left", true);
-    } else if (this.cursors.right.isDown) {
-      this.player.setVelocityX(160);
-
-      this.player.anims.play("right", true);
-    } else {
-      this.player.setVelocityX(0);
-
-      this.player.anims.play("turn");
-    }
-
-    if (this.cursors.up.isDown && this.player.body.touching.down) {
-      this.player.setVelocityY(-330);
-    }
-  }
-
-  collectStar(player, star) {
-    star.disableBody(true, true);
-
-    this.score += 10;
-    this.scoreText.setText("Score: " + this.score);
-
-    if (this.stars.countActive(true) === 0) {
-      this.stars.children.iterate(function (child) {
-        child.enableBody(true, child.x, 0, true, true);
+      // Move o tiro para cima e esconde ao terminar.
+      this.tweens.add({
+        targets: this.tiro,
+        y: -30,
+        duration: 800,
+        ease: "Linear",
+        onComplete: () => {
+          this.tiro.setVisible(false);
+        },
       });
-
-      var x =
-        this.player.x < 400
-          ? Phaser.Math.Between(400, 800)
-          : Phaser.Math.Between(0, 400);
-
-      var bomb = this.bombs.create(x, 16, "bomb");
-      bomb.setBounce(1);
-      bomb.setCollideWorldBounds(true);
-      bomb.setVelocity(Phaser.Math.Between(-50, 20), 20);
-      bomb.allowGravity = false;
-    }
-  }
-
-  hitBomb(player, bomb) {
-    this.physics.pause();
-    this.player.setTint(0xff0000);
-    this.player.anims.play("turn");
-    this.gameOver = true;
+    });
   }
 }
 
