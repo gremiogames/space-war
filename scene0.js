@@ -9,7 +9,9 @@ class scene0 extends Phaser.Scene {
     this.platforms;
     this.cursors;
     this.button;
+    this.buttonArmor;
     this.tiro;
+    this.shield;
     this.score = 0;
     this.gameOver = false;
     this.scoreText;
@@ -30,16 +32,23 @@ class scene0 extends Phaser.Scene {
       frameHeight: 300,
     });
 
+    this.load.image("armorButton", "assets/Armor_Bonus.png");
+    this.load.image("shield", "assets/spr_shield.png");
+
     this.load.image(
       "sheet",
       "assets/game-assets/Personagem/SpaceRage/SpaceRage/spritesheet.png",
     );
+
+    this.load.audio("laser", "assets/efeitolaser.mp3");
   }
 
   create() {
     const x = this.scale.width / 2;
     const y = this.scale.height - 75;
     const yOpposite = 75;
+
+    this.laser = this.sound.add("laser");
 
     this.player = this.physics.add
       .sprite(x, y, "player1")
@@ -62,6 +71,12 @@ class scene0 extends Phaser.Scene {
       .setDisplaySize(64, 64)
       .setInteractive();
 
+    // Segundo botao, no lado oposto.
+    this.buttonArmor = this.add
+      .image(200, 500, "armorButton")
+      .setDisplaySize(64, 64)
+      .setInteractive();
+
     // Registra o frame plasma_1 dentro da textura "sheet".
     this.textures.get("sheet").add("plasma_1", 0, 30, 2, 6, 21);
 
@@ -71,9 +86,17 @@ class scene0 extends Phaser.Scene {
       .setScale(3.2)
       .setVisible(false);
 
+    // Escudo inicia escondido sobre o player.
+    this.shield = this.add
+      .image(this.player.x, this.player.y - 35, "shield")
+      .setDisplaySize(110, 110)
+      .setVisible(false);
+
     this.button.on("pointerdown", () => {
       // Evita dois tiros ao mesmo tempo.
       if (this.tiro.visible) return;
+
+      this.laser.play({ volume: 0.5 });
 
       this.tiro.setPosition(this.player.x, this.player.y - 80).setVisible(true);
 
@@ -87,6 +110,10 @@ class scene0 extends Phaser.Scene {
           this.tiro.setVisible(false);
         },
       });
+    });
+
+    this.buttonArmor.on("pointerdown", () => {
+      this.shield.setPosition(this.player.x, this.player.y - 35).setVisible(true);
     });
   }
 }
