@@ -10,6 +10,8 @@ class scene0 extends Phaser.Scene {
     this.cursors;
     this.button;
     this.buttonArmor;
+    this.buttonReload;
+    this.shotsLoaded = 0;
     this.tiro;
     this.shield;
     this.score = 0;
@@ -23,8 +25,8 @@ class scene0 extends Phaser.Scene {
       frameHeight: 64,
     });
     this.load.spritesheet("player2", "assets/Alien-Frigate(3).png", {
-      frameWidth: 90,
-      frameHeight: 90,
+      frameWidth: 110,
+      frameHeight: 110,
     });
 
     this.load.spritesheet("shotbutton", "assets/Enemy_Destroy_Bonus.png", {
@@ -33,6 +35,9 @@ class scene0 extends Phaser.Scene {
     });
 
     this.load.image("armorButton", "assets/Armor_Bonus.png");
+
+    this.load.image("reloadButton", "assets/Damage_Bonus.png");
+
     this.load.image("shield", "assets/spr_shield.png");
 
     this.load.image(
@@ -70,12 +75,22 @@ class scene0 extends Phaser.Scene {
       .setScale(2.0)
       .setDisplaySize(64, 64)
       .setInteractive();
+    this.button.setAlpha(0.5);
 
     // Segundo botao, no lado oposto.
     this.buttonArmor = this.add
       .image(200, 500, "armorButton")
       .setDisplaySize(64, 64)
       .setInteractive();
+
+    // Terceiro botao, a direita do botao de tiro e um pouco mais acima.
+    this.buttonReload = this.add
+      .image(this.button.x + 100, this.button.y - 30, "reloadButton")
+      .setDisplaySize(64, 64)
+      .setInteractive();
+
+    // Arma inicia sem municao e pode acumular recargas.
+    this.shotsLoaded = 0;
 
     // Registra o frame plasma_1 dentro da textura "sheet".
     this.textures.get("sheet").add("plasma_1", 0, 30, 2, 6, 21);
@@ -93,8 +108,16 @@ class scene0 extends Phaser.Scene {
       .setVisible(false);
 
     this.button.on("pointerdown", () => {
+      // So permite tiro se houver ao menos uma carga acumulada.
+      if (this.shotsLoaded <= 0) return;
+
       // Evita dois tiros ao mesmo tempo.
       if (this.tiro.visible) return;
+
+      // Consome 1 carga a cada disparo.
+      this.shotsLoaded -= 1;
+      this.button.setAlpha(this.shotsLoaded > 0 ? 1 : 0.5);
+      this.buttonReload.setAlpha(1);
 
       this.laser.play({ volume: 0.5 });
 
@@ -112,8 +135,17 @@ class scene0 extends Phaser.Scene {
       });
     });
 
+    this.buttonReload.on("pointerdown", () => {
+      // Cada clique no botao de recarga acumula 1 tiro disponivel.
+      this.shotsLoaded += 1;
+      this.button.setAlpha(1);
+      this.buttonReload.setAlpha(0.6);
+    });
+
     this.buttonArmor.on("pointerdown", () => {
-      this.shield.setPosition(this.player.x, this.player.y - 35).setVisible(true);
+      this.shield
+        .setPosition(this.player.x, this.player.y - 35)
+        .setVisible(true);
     });
   }
 }
