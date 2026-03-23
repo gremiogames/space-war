@@ -19,7 +19,7 @@ class scene0 extends Phaser.Scene {
     this.gameOver = false;
     this.scoreText;
     this.ammoText;
-    
+
     // Sistema de contagem regressiva
     this.roundActive = false;
     this.roundTimer = 3000; // 3 segundos em milissegundos
@@ -109,7 +109,7 @@ class scene0 extends Phaser.Scene {
       .image(x, y - 80, "sheet", "plasma_1")
       .setScale(3.2)
       .setVisible(false);
-    
+
     // Configurar física do tiro
     this.tiro.body.setAllowGravity(false);
     this.tiro.setDisplaySize(30, 50);
@@ -146,7 +146,7 @@ class scene0 extends Phaser.Scene {
 
       this.selectedAction = "shoot";
       this.actionExecuted = true;
-      
+
       // Desabilita todos os botões até o próximo round
       this.disableAllButtons();
       this.button.setAlpha(0.3); // Feedback visual de selecionado
@@ -158,7 +158,7 @@ class scene0 extends Phaser.Scene {
 
       this.selectedAction = "reload";
       this.actionExecuted = true;
-      
+
       // Desabilita todos os botões até o próximo round
       this.disableAllButtons();
       this.buttonReload.setAlpha(0.3); // Feedback visual de selecionado
@@ -170,7 +170,7 @@ class scene0 extends Phaser.Scene {
 
       this.selectedAction = "armor";
       this.actionExecuted = true;
-      
+
       // Desabilita todos os botões até o próximo round
       this.disableAllButtons();
       this.buttonArmor.setAlpha(0.3); // Feedback visual de selecionado
@@ -273,19 +273,19 @@ class scene0 extends Phaser.Scene {
   onTiroHit(tiro, player2) {
     // Tiro atinge o player2
     console.log("Colisão detectada!");
-    
+
     // Para o tween do tiro
     if (this.tiroTween) {
       this.tiroTween.stop();
       this.tiroTween = null;
     }
-    
+
     // Para a velocidade do tiro
     tiro.body.setVelocity(0, 0);
-    
+
     // Remove o tiro imediatamente
     tiro.setVisible(false);
-    
+
     // Esconde o escudo do player2 se estiver ativo
     if (this.shield.visible) {
       this.shield.setVisible(false);
@@ -323,7 +323,7 @@ class scene0 extends Phaser.Scene {
         this.laser.play({ volume: 0.5 });
 
         this.tiro.setPosition(this.player.x, this.player.y - 80).setVisible(true);
-        
+
         // Definir velocidade do tiro para cima (negativo = para cima)
         this.tiro.body.setVelocity(0, -400);
 
@@ -355,7 +355,7 @@ class scene0 extends Phaser.Scene {
       this.shield
         .setPosition(this.player.x, this.player.y - 35)
         .setVisible(true);
-      
+
       // Desativa o escudo após 2 segundos
       this.time.delayedCall(2000, () => {
         this.shield.setVisible(false);
