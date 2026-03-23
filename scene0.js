@@ -44,10 +44,7 @@ class scene0 extends Phaser.Scene {
 
     this.load.image("shield", "assets/spr_shield.png");
 
-    this.load.image(
-      "sheet",
-      "assets/map-assets/spritesheet.png",
-    );
+    this.load.image("sheet", "assets/map-assets/spritesheet.png");
 
     this.load.audio("laser", "assets/efeitolaser.mp3");
   }
