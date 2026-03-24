@@ -44,8 +44,8 @@ class scene0 extends Phaser.Scene {
     };
     this.mapSpeedByPhase = {
       phase5s: 0.27,
-      phase4s: 0.40,
-      phase3s: 0.70,
+      phase4s: 0.4,
+      phase3s: 0.7,
       phase2s: 1.0,
       phase1s: 1.5,
     };
@@ -262,7 +262,13 @@ class scene0 extends Phaser.Scene {
     });
 
     // Colisão entre tiro e player2
-    this.physics.add.overlap(this.tiro, this.player2, this.onTiroHit, null, this);
+    this.physics.add.overlap(
+      this.tiro,
+      this.player2,
+      this.onTiroHit,
+      null,
+      this,
+    );
 
     // Mostra preparação inicial e inicia a primeira rodada.
     this.showPrepareAndStartRound();
@@ -464,7 +470,9 @@ class scene0 extends Phaser.Scene {
 
         this.laser.play({ volume: 0.5 });
 
-        this.tiro.setPosition(this.player.x, this.player.y - 80).setVisible(true);
+        this.tiro
+          .setPosition(this.player.x, this.player.y - 80)
+          .setVisible(true);
 
         // Definir velocidade do tiro para cima (negativo = para cima)
         this.tiro.body.setVelocity(0, -400);
