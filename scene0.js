@@ -8,6 +8,7 @@ class scene0 extends Phaser.Scene {
     this.backgroundMinX = 0;
     this.backgroundMaxX = 0;
     this.player;
+    this.playerShadow;
     this.player2;
     this.stars;
     this.bombs;
@@ -20,17 +21,64 @@ class scene0 extends Phaser.Scene {
     this.tiro;
     this.tiroTween;
     this.shield;
+    this.shieldActive = false;
+    this.shieldTimerEvent = null;
     this.score = 0;
     this.gameOver = false;
     this.scoreText;
     this.ammoText;
+    this.uiFontFamily = "Trebuchet MS, sans-serif";
+    this.countdownNumberSize = "64px";
+    this.countdownMessageSize = "48px";
 
     // Sistema de contagem regressiva
     this.roundActive = false;
     this.roundTimer = 3000; // 3 segundos em milissegundos
+    this.roundCount = 0;
+    // Ajuste de progressão de tensão por rodada (edite estes valores livremente).
+    this.roundThresholds = {
+      to4sAtRound: 5,
+      to3sAtRound: 9,
+      to2sAtRound: 20,
+      to1sAtRound: 36,
+    };
+    this.mapSpeedByPhase = {
+      phase5s: 0.27,
+      phase4s: 0.40,
+      phase3s: 0.70,
+      phase2s: 1.0,
+      phase1s: 1.5,
+    };
     this.countdownText;
     this.actionExecuted = false; // Controla se uma ação foi executada nesta rodada
     this.selectedAction = null; // Armazena qual ação foi selecionada
+  }
+
+  getRoundDurationSeconds() {
+    if (this.roundCount >= this.roundThresholds.to1sAtRound) return 1;
+    if (this.roundCount >= this.roundThresholds.to2sAtRound) return 2;
+    if (this.roundCount >= this.roundThresholds.to3sAtRound) return 3;
+    if (this.roundCount >= this.roundThresholds.to4sAtRound) return 4;
+    return 5;
+  }
+
+  getRoundDurationMs() {
+    if (this.roundCount >= this.roundThresholds.to1sAtRound) return 1500;
+    return this.getRoundDurationSeconds() * 1000;
+  }
+
+  updateBackgroundSpeedForRound() {
+    if (this.roundCount >= this.roundThresholds.to1sAtRound) {
+      this.backgroundSpeed = this.mapSpeedByPhase.phase1s;
+    } else if (this.roundCount >= this.roundThresholds.to2sAtRound) {
+      this.backgroundSpeed = this.mapSpeedByPhase.phase2s;
+    } else if (this.roundCount >= this.roundThresholds.to3sAtRound) {
+      this.backgroundSpeed = this.mapSpeedByPhase.phase3s;
+    } else if (this.roundCount >= this.roundThresholds.to4sAtRound) {
+      this.backgroundSpeed = this.mapSpeedByPhase.phase4s;
+    } else {
+      this.backgroundSpeed = this.mapSpeedByPhase.phase5s;
+    }
   }
 
   preload() {
@@ -65,6 +113,7 @@ class scene0 extends Phaser.Scene {
     const x = this.scale.width / 2;
     const y = this.scale.height - 75;
     const yOpposite = 75;
+    const playerScale = 1.15;
 
     this.background = this.add
       .tileSprite(0, 0, this.scale.width, this.scale.height, "backgroundMap")
@@ -91,13 +140,25 @@ class scene0 extends Phaser.Scene {
 
     this.player = this.physics.add
       .sprite(x, y, "player1")
+      .setScale(playerScale)
       .setOrigin(0.5, 1)
       .setImmovable(true);
 
     this.player.body.setAllowGravity(false);
 
+    // Registra o frame da sombra do jogador 1 dentro da textura "sheet".
+    this.textures.get("sheet").add("player_shadow_m", 0, 68, 675, 64, 64);
+
+    // Sombra apenas do jogador 1.
+    this.playerShadow = this.add
+      .image(this.player.x, this.player.y - 12, "sheet", "player_shadow_m")
+      .setScale(playerScale * 1.02)
+      .setAlpha(0.35)
+      .setDepth(this.player.depth - 1);
+
     this.player2 = this.physics.add
       .sprite(x, yOpposite, "player2")
+      .setScale(playerScale)
       .setOrigin(0.5, 0)
       .setImmovable(true);
 
@@ -105,22 +166,22 @@ class scene0 extends Phaser.Scene {
 
     // Botao de tiro clicavel na tela.
     this.button = this.add
-      .sprite(600, 500, "shotbutton", 10)
+      .sprite(580, 500, "shotbutton", 10)
       .setScale(2.0)
-      .setDisplaySize(64, 64)
+      .setDisplaySize(72, 72)
       .setInteractive();
     this.button.setAlpha(0.5);
 
     // Segundo botao, no lado oposto.
     this.buttonArmor = this.add
       .image(200, 500, "armorButton")
-      .setDisplaySize(64, 64)
+      .setDisplaySize(72, 72)
       .setInteractive();
 
     // Terceiro botao, a direita do botao de tiro e um pouco mais acima.
     this.buttonReload = this.add
       .image(this.button.x + 100, this.button.y - 30, "reloadButton")
-      .setDisplaySize(64, 64)
+      .setDisplaySize(72, 72)
       .setInteractive();
 
     // Arma inicia sem municao e pode acumular recargas.
@@ -148,7 +209,8 @@ class scene0 extends Phaser.Scene {
     // Texto de contagem regressiva no centro da tela
     this.countdownText = this.add
       .text(x, 50, "3", {
-        fontSize: "64px",
+        fontSize: this.countdownNumberSize,
+        fontFamily: this.uiFontFamily,
         fill: "#ffff00",
         fontStyle: "bold",
       })
@@ -158,6 +220,7 @@ class scene0 extends Phaser.Scene {
     this.ammoText = this.add
       .text(this.scale.width - 30, 30, `Munição: ${this.shotsLoaded}`, {
         fontSize: "24px",
+        fontFamily: this.uiFontFamily,
         fill: "#ffff00",
         fontStyle: "bold",
         backgroundColor: "#000000",
@@ -173,8 +236,7 @@ class scene0 extends Phaser.Scene {
       this.actionExecuted = true;
 
       // Desabilita todos os botões até o próximo round
-      this.disableAllButtons();
-      this.button.setAlpha(0.3); // Feedback visual de selecionado
+      this.disableAllButtons(true);
     });
 
     this.buttonReload.on("pointerdown", () => {
@@ -185,8 +247,7 @@ class scene0 extends Phaser.Scene {
       this.actionExecuted = true;
 
       // Desabilita todos os botões até o próximo round
-      this.disableAllButtons();
-      this.buttonReload.setAlpha(0.3); // Feedback visual de selecionado
+      this.disableAllButtons(true);
     });
 
     this.buttonArmor.on("pointerdown", () => {
@@ -197,18 +258,39 @@ class scene0 extends Phaser.Scene {
       this.actionExecuted = true;
 
       // Desabilita todos os botões até o próximo round
-      this.disableAllButtons();
-      this.buttonArmor.setAlpha(0.3); // Feedback visual de selecionado
+      this.disableAllButtons(true);
     });
 
     // Colisão entre tiro e player2
     this.physics.add.overlap(this.tiro, this.player2, this.onTiroHit, null, this);
 
-    // Inicia a primeira rodada
-    this.startRound();
+    // Mostra preparação inicial e inicia a primeira rodada.
+    this.showPrepareAndStartRound();
+  }
+
+  showPrepareAndStartRound() {
+    this.disableAllButtons(true);
+    this.countdownText.setText("Preparar...");
+    this.countdownText.setFill("#00ff00");
+    this.countdownText.setFontSize(this.countdownMessageSize);
+
+    this.time.delayedCall(1000, () => {
+      this.startRound();
+    });
   }
 
   startRound() {
+    this.roundCount += 1;
+    this.updateBackgroundSpeedForRound();
+
+    // Garante que o escudo visual e seu estado sejam resetados a cada nova rodada.
+    if (this.shieldTimerEvent) {
+      this.shieldTimerEvent.remove(false);
+      this.shieldTimerEvent = null;
+    }
+    this.shieldActive = false;
+    this.shield.setAlpha(1).setVisible(false);
+
     // Reseta o estado para permitir nova ação
     this.actionExecuted = false;
     this.selectedAction = null;
@@ -217,13 +299,19 @@ class scene0 extends Phaser.Scene {
     this.enableAllButtons();
 
     this.roundActive = true;
-    let remainingTime = 3;
+    const totalRoundMs = this.getRoundDurationMs();
+    let remainingMs = totalRoundMs;
+    let remainingTime = this.getRoundDurationSeconds();
     this.countdownText.setText(remainingTime);
     this.countdownText.setFill("#ffff00");
+    this.countdownText.setFontSize(this.countdownNumberSize);
 
     // Atualiza a contagem a cada segundo
     const interval = setInterval(() => {
-      remainingTime--;
+      remainingMs -= 1000;
+      if (remainingMs <= 0) return;
+
+      remainingTime = Math.max(1, Math.floor(remainingMs / 1000));
       this.countdownText.setText(remainingTime);
 
       // Muda cor durante a contagem
@@ -232,28 +320,51 @@ class scene0 extends Phaser.Scene {
       } else if (remainingTime === 1) {
         this.countdownText.setFill("#ff0000");
       }
+    }, 1000);
 
-      if (remainingTime <= 0) {
-        clearInterval(interval);
-        this.roundActive = false;
-        this.countdownText.setText("!");
-        this.countdownText.setFill("#ff0000");
+    this.time.delayedCall(totalRoundMs, () => {
+      clearInterval(interval);
+      this.roundActive = false;
+      this.countdownText.setText("Ação!");
+      this.countdownText.setFill("#ff0000");
+      this.countdownText.setFontSize(this.countdownMessageSize);
 
-        // Desabilita todos os botões quando a contagem termina
-        this.disableAllButtons();
-        this.executeAction();
+      // Desabilita todos os botões quando a contagem termina e aplica visual inativo.
+      this.disableAllButtons(true);
+      this.executeAction();
+      this.disableAllButtons(true);
 
-        // Aguarda 2 segundos com o "!" exibido antes de executar a ação
-        this.time.delayedCall(2000, () => {
-          // Executa a ação selecionada após os 2 segundos
+      // Aguarda 1,5 segundo com "Ação!" exibido.
+      this.time.delayedCall(1500, () => {
+        // Intervalo vazio de meio segundo antes da preparação.
+        this.countdownText.setText("");
 
-          // Aguarda 500ms e inicia nova rodada
-          this.time.delayedCall(500, () => {
+        if (this.shield.visible) {
+          this.tweens.killTweensOf(this.shield);
+          this.tweens.add({
+            targets: this.shield,
+            alpha: 0,
+            duration: 500,
+            ease: "Linear",
+            onComplete: () => {
+              this.shieldActive = false;
+              this.shield.setAlpha(1).setVisible(false);
+            },
+          });
+        }
+
+        this.time.delayedCall(500, () => {
+          // Mostra mensagem de preparação antes da próxima rodada.
+          this.countdownText.setText("Preparar...");
+          this.countdownText.setFill("#00ff00");
+          this.countdownText.setFontSize(this.countdownMessageSize);
+
+          this.time.delayedCall(1000, () => {
             this.startRound();
           });
         });
-      }
-    }, 1000);
+      });
+    });
   }
 
   revealSelectedAction() {
@@ -289,10 +400,16 @@ class scene0 extends Phaser.Scene {
     });
   }
 
-  disableAllButtons() {
+  disableAllButtons(showInactiveStyle = false) {
     this.button.disableInteractive();
     this.buttonReload.disableInteractive();
     this.buttonArmor.disableInteractive();
+
+    if (showInactiveStyle) {
+      this.button.setTint(0x808080).setAlpha(0.5);
+      this.buttonReload.setTint(0x808080).setAlpha(0.5);
+      this.buttonArmor.setTint(0x808080).setAlpha(0.5);
+    }
   }
 
   onTiroHit(tiro, player2) {
@@ -310,11 +427,6 @@ class scene0 extends Phaser.Scene {
 
     // Remove o tiro imediatamente
     tiro.setVisible(false);
-
-    // Esconde o escudo do player2 se estiver ativo
-    if (this.shield.visible) {
-      this.shield.setVisible(false);
-    }
   }
 
   updateAmmoDisplay() {
@@ -325,6 +437,11 @@ class scene0 extends Phaser.Scene {
     this.button.setInteractive();
     this.buttonReload.setInteractive();
     this.buttonArmor.setInteractive();
+
+    // Remove estilo de inativo da fase de resolução da rodada.
+    this.button.clearTint();
+    this.buttonReload.clearTint();
+    this.buttonArmor.clearTint();
 
     // Reseta cores dos botões
     this.button.setAlpha(this.shotsLoaded > 0 ? 1 : 0.5);
@@ -377,18 +494,31 @@ class scene0 extends Phaser.Scene {
       this.buttonReload.setAlpha(0.6);
     } else if (this.selectedAction === "armor") {
       // Ativa o escudo
+      this.shieldActive = true;
       this.shield
         .setPosition(this.player.x, this.player.y - 35)
+        .setAlpha(1)
         .setVisible(true);
 
-      // Desativa o escudo após 2 segundos
-      this.time.delayedCall(2000, () => {
+      // Evita múltiplos timers concorrentes do escudo.
+      if (this.shieldTimerEvent) {
+        this.shieldTimerEvent.remove(false);
+      }
+
+      // Desativa o escudo após 2,5 segundos
+      this.shieldTimerEvent = this.time.delayedCall(2500, () => {
+        this.shieldActive = false;
         this.shield.setVisible(false);
+        this.shieldTimerEvent = null;
       });
     }
   }
 
   update() {
+    if (this.playerShadow && this.player) {
+      this.playerShadow.setPosition(this.player.x, this.player.y - 12);
+    }
+
     if (!this.background) return;
 
     if (this.backgroundMaxX <= this.backgroundMinX) return;
