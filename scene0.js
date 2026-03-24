@@ -18,10 +18,19 @@ class scene0 extends Phaser.Scene {
     this.buttonReload;
     this.shotsLoaded = 0;
     this.tiro;
+    this.tiroTween;
     this.shield;
     this.score = 0;
     this.gameOver = false;
     this.scoreText;
+    this.ammoText;
+
+    // Sistema de contagem regressiva
+    this.roundActive = false;
+    this.roundTimer = 3000; // 3 segundos em milissegundos
+    this.countdownText;
+    this.actionExecuted = false; // Controla se uma ação foi executada nesta rodada
+    this.selectedAction = null; // Armazena qual ação foi selecionada
   }
 
   preload() {
@@ -121,10 +130,14 @@ class scene0 extends Phaser.Scene {
     this.textures.get("sheet").add("plasma_1", 0, 30, 2, 6, 21);
 
     // Tiro inicia escondido e aparece ao clicar no botao.
-    this.tiro = this.add
+    this.tiro = this.physics.add
       .image(x, y - 80, "sheet", "plasma_1")
       .setScale(3.2)
       .setVisible(false);
+
+    // Configurar física do tiro
+    this.tiro.body.setAllowGravity(false);
+    this.tiro.setDisplaySize(30, 50);
 
     // Escudo inicia escondido sobre o player.
     this.shield = this.add
@@ -132,46 +145,247 @@ class scene0 extends Phaser.Scene {
       .setDisplaySize(110, 110)
       .setVisible(false);
 
+    // Texto de contagem regressiva no centro da tela
+    this.countdownText = this.add
+      .text(x, 50, "3", {
+        fontSize: "64px",
+        fill: "#ffff00",
+        fontStyle: "bold",
+      })
+      .setOrigin(0.5, 0.5);
+
+    // Texto contador de munição no canto superior direito
+    this.ammoText = this.add
+      .text(this.scale.width - 30, 30, `Munição: ${this.shotsLoaded}`, {
+        fontSize: "24px",
+        fill: "#ffff00",
+        fontStyle: "bold",
+        backgroundColor: "#000000",
+        padding: { x: 15, y: 10 },
+      })
+      .setOrigin(1, 0);
+
     this.button.on("pointerdown", () => {
-      // So permite tiro se houver ao menos uma carga acumulada.
-      if (this.shotsLoaded <= 0) return;
+      // Impede múltiplas ações na mesma rodada
+      if (this.actionExecuted) return;
 
-      // Evita dois tiros ao mesmo tempo.
-      if (this.tiro.visible) return;
+      this.selectedAction = "shoot";
+      this.actionExecuted = true;
 
-      // Consome 1 carga a cada disparo.
-      this.shotsLoaded -= 1;
-      this.button.setAlpha(this.shotsLoaded > 0 ? 1 : 0.5);
-      this.buttonReload.setAlpha(1);
-
-      this.laser.play({ volume: 0.5 });
-
-      this.tiro.setPosition(this.player.x, this.player.y - 80).setVisible(true);
-
-      // Move o tiro para cima e esconde ao terminar.
-      this.tweens.add({
-        targets: this.tiro,
-        y: -30,
-        duration: 800,
-        ease: "Linear",
-        onComplete: () => {
-          this.tiro.setVisible(false);
-        },
-      });
+      // Desabilita todos os botões até o próximo round
+      this.disableAllButtons();
+      this.button.setAlpha(0.3); // Feedback visual de selecionado
     });
 
     this.buttonReload.on("pointerdown", () => {
-      // Cada clique no botao de recarga acumula 1 tiro disponivel.
-      this.shotsLoaded += 1;
-      this.button.setAlpha(1);
-      this.buttonReload.setAlpha(0.6);
+      // Impede múltiplas ações na mesma rodada
+      if (this.actionExecuted) return;
+
+      this.selectedAction = "reload";
+      this.actionExecuted = true;
+
+      // Desabilita todos os botões até o próximo round
+      this.disableAllButtons();
+      this.buttonReload.setAlpha(0.3); // Feedback visual de selecionado
     });
 
     this.buttonArmor.on("pointerdown", () => {
+      // Impede múltiplas ações na mesma rodada
+      if (this.actionExecuted) return;
+
+      this.selectedAction = "armor";
+      this.actionExecuted = true;
+
+      // Desabilita todos os botões até o próximo round
+      this.disableAllButtons();
+      this.buttonArmor.setAlpha(0.3); // Feedback visual de selecionado
+    });
+
+    // Colisão entre tiro e player2
+    this.physics.add.overlap(this.tiro, this.player2, this.onTiroHit, null, this);
+
+    // Inicia a primeira rodada
+    this.startRound();
+  }
+
+  startRound() {
+    // Reseta o estado para permitir nova ação
+    this.actionExecuted = false;
+    this.selectedAction = null;
+
+    // Habilita todos os botões
+    this.enableAllButtons();
+
+    this.roundActive = true;
+    let remainingTime = 3;
+    this.countdownText.setText(remainingTime);
+    this.countdownText.setFill("#ffff00");
+
+    // Atualiza a contagem a cada segundo
+    const interval = setInterval(() => {
+      remainingTime--;
+      this.countdownText.setText(remainingTime);
+
+      // Muda cor durante a contagem
+      if (remainingTime === 2) {
+        this.countdownText.setFill("#ff8800");
+      } else if (remainingTime === 1) {
+        this.countdownText.setFill("#ff0000");
+      }
+
+      if (remainingTime <= 0) {
+        clearInterval(interval);
+        this.roundActive = false;
+        this.countdownText.setText("!");
+        this.countdownText.setFill("#ff0000");
+
+        // Desabilita todos os botões quando a contagem termina
+        this.disableAllButtons();
+        this.executeAction();
+
+        // Aguarda 2 segundos com o "!" exibido antes de executar a ação
+        this.time.delayedCall(2000, () => {
+          // Executa a ação selecionada após os 2 segundos
+
+          // Aguarda 500ms e inicia nova rodada
+          this.time.delayedCall(500, () => {
+            this.startRound();
+          });
+        });
+      }
+    }, 1000);
+  }
+
+  revealSelectedAction() {
+    // Defines the text and color based on the selected action
+    let actionName = "SEM AÇÃO";
+    let actionColor = "#ffffff";
+
+    if (this.selectedAction === "shoot") {
+      actionName = "DISPARO!";
+      actionColor = "#ff0000";
+    } else if (this.selectedAction === "reload") {
+      actionName = "RECARGA!";
+      actionColor = "#00ff00";
+    } else if (this.selectedAction === "armor") {
+      actionName = "ESCUDO!";
+      actionColor = "#0088ff";
+    }
+
+    // Exibe a ação revelada por 3 segundos
+    this.revealText.setText(actionName);
+    this.revealText.setFill(actionColor);
+    this.revealText.setVisible(true);
+
+    // Após 3 segundos, executa a ação
+    this.time.delayedCall(3000, () => {
+      this.revealText.setVisible(false);
+      this.executeAction();
+
+      // Aguarda 500ms e inicia nova rodada
+      this.time.delayedCall(500, () => {
+        this.startRound();
+      });
+    });
+  }
+
+  disableAllButtons() {
+    this.button.disableInteractive();
+    this.buttonReload.disableInteractive();
+    this.buttonArmor.disableInteractive();
+  }
+
+  onTiroHit(tiro, player2) {
+    // Tiro atinge o player2
+    console.log("Colisão detectada!");
+
+    // Para o tween do tiro
+    if (this.tiroTween) {
+      this.tiroTween.stop();
+      this.tiroTween = null;
+    }
+
+    // Para a velocidade do tiro
+    tiro.body.setVelocity(0, 0);
+
+    // Remove o tiro imediatamente
+    tiro.setVisible(false);
+
+    // Esconde o escudo do player2 se estiver ativo
+    if (this.shield.visible) {
+      this.shield.setVisible(false);
+    }
+  }
+
+  updateAmmoDisplay() {
+    this.ammoText.setText(`Munição: ${this.shotsLoaded}`);
+  }
+
+  enableAllButtons() {
+    this.button.setInteractive();
+    this.buttonReload.setInteractive();
+    this.buttonArmor.setInteractive();
+
+    // Reseta cores dos botões
+    this.button.setAlpha(this.shotsLoaded > 0 ? 1 : 0.5);
+    this.buttonReload.setAlpha(1);
+    this.buttonArmor.setAlpha(1);
+  }
+
+  executeAction() {
+    // Executa apenas a ação selecionada
+    if (!this.selectedAction) return;
+
+    if (this.selectedAction === "shoot") {
+      // So permite tiro se houver ao menos uma carga acumulada.
+      if (this.shotsLoaded > 0 && !this.tiro.visible) {
+        // Consome 1 carga a cada disparo.
+        this.shotsLoaded -= 1;
+        this.updateAmmoDisplay();
+        this.button.setAlpha(this.shotsLoaded > 0 ? 1 : 0.5);
+        this.buttonReload.setAlpha(1);
+
+        this.laser.play({ volume: 0.5 });
+
+        this.tiro.setPosition(this.player.x, this.player.y - 80).setVisible(true);
+
+        // Definir velocidade do tiro para cima (negativo = para cima)
+        this.tiro.body.setVelocity(0, -400);
+
+        // Para qualquer tween anterior do tiro
+        if (this.tiroTween) {
+          this.tiroTween.stop();
+        }
+
+        // Move o tiro para cima e esconde ao terminar.
+        this.tiroTween = this.tweens.add({
+          targets: this.tiro,
+          y: -30,
+          duration: 2000,
+          ease: "Linear",
+          onComplete: () => {
+            this.tiro.body.setVelocity(0, 0);
+            this.tiro.setVisible(false);
+          },
+        });
+      }
+    } else if (this.selectedAction === "reload") {
+      // Cada ação de recarga acumula 1 tiro disponivel.
+      this.shotsLoaded += 1;
+      this.updateAmmoDisplay();
+      this.button.setAlpha(1);
+      this.buttonReload.setAlpha(0.6);
+    } else if (this.selectedAction === "armor") {
+      // Ativa o escudo
       this.shield
         .setPosition(this.player.x, this.player.y - 35)
         .setVisible(true);
-    });
+
+      // Desativa o escudo após 2 segundos
+      this.time.delayedCall(2000, () => {
+        this.shield.setVisible(false);
+      });
+    }
   }
 
   update() {
