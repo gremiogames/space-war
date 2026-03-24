@@ -4,6 +4,9 @@ class scene0 extends Phaser.Scene {
 
     this.background;
     this.backgroundSpeed = 0.25;
+    this.backgroundDirection = 1;
+    this.backgroundMinX = 0;
+    this.backgroundMaxX = 0;
     this.player;
     this.player2;
     this.stars;
@@ -22,7 +25,7 @@ class scene0 extends Phaser.Scene {
   }
 
   preload() {
-    this.load.image("backgroundMap", "assets/map-assets/MapaImagem.png");
+    this.load.image("backgroundMap", "assets/map-assets/Mapa3.png");
 
     this.load.spritesheet("player1", "assets/player_b_m.png", {
       frameWidth: 64,
@@ -60,7 +63,7 @@ class scene0 extends Phaser.Scene {
       .setScrollFactor(0)
       .setDepth(-10);
 
-    const mapZoomOut = 0.8;
+    const mapZoomOut = 0.85;
     this.background.tileScaleX = mapZoomOut;
     this.background.tileScaleY = mapZoomOut;
 
@@ -69,7 +72,9 @@ class scene0 extends Phaser.Scene {
     const visibleMapHeight = this.scale.height / this.background.tileScaleY;
     const mapOffsetX = Math.max(0, (mapTexture.width - visibleMapWidth) / 2);
     const mapOffsetY = Math.max(0, (mapTexture.height - visibleMapHeight) / 2);
-    const mapOffsetYExtra = 10;
+    const mapOffsetYExtra = 0;
+    this.backgroundMinX = 0;
+    this.backgroundMaxX = Math.max(0, mapTexture.width - visibleMapWidth);
     this.background.tilePositionX = mapOffsetX;
     this.background.tilePositionY = mapOffsetY + mapOffsetYExtra;
 
@@ -172,7 +177,18 @@ class scene0 extends Phaser.Scene {
   update() {
     if (!this.background) return;
 
-    this.background.tilePositionX += this.backgroundSpeed;
+    if (this.backgroundMaxX <= this.backgroundMinX) return;
+
+    this.background.tilePositionX +=
+      this.backgroundSpeed * this.backgroundDirection;
+
+    if (this.background.tilePositionX >= this.backgroundMaxX) {
+      this.background.tilePositionX = this.backgroundMaxX;
+      this.backgroundDirection = -1;
+    } else if (this.background.tilePositionX <= this.backgroundMinX) {
+      this.background.tilePositionX = this.backgroundMinX;
+      this.backgroundDirection = 1;
+    }
   }
 }
 
