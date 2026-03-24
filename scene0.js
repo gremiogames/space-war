@@ -2,6 +2,8 @@ class scene0 extends Phaser.Scene {
   constructor() {
     super("scene0");
 
+    this.background;
+    this.backgroundSpeed = 0.25;
     this.player;
     this.player2;
     this.stars;
@@ -29,6 +31,8 @@ class scene0 extends Phaser.Scene {
   }
 
   preload() {
+    this.load.image("backgroundMap", "assets/map-assets/MapaImagem.png");
+
     this.load.spritesheet("player1", "assets/player_b_m.png", {
       frameWidth: 64,
       frameHeight: 64,
@@ -49,10 +53,7 @@ class scene0 extends Phaser.Scene {
 
     this.load.image("shield", "assets/spr_shield.png");
 
-    this.load.image(
-      "sheet",
-      "assets/game-assets/Personagem/SpaceRage/SpaceRage/spritesheet.png",
-    );
+    this.load.image("sheet", "assets/map-assets/spritesheet.png");
 
     this.load.audio("laser", "assets/efeitolaser.mp3");
   }
@@ -61,6 +62,25 @@ class scene0 extends Phaser.Scene {
     const x = this.scale.width / 2;
     const y = this.scale.height - 75;
     const yOpposite = 75;
+
+    this.background = this.add
+      .tileSprite(0, 0, this.scale.width, this.scale.height, "backgroundMap")
+      .setOrigin(0, 0)
+      .setScrollFactor(0)
+      .setDepth(-10);
+
+    const mapZoomOut = 0.8;
+    this.background.tileScaleX = mapZoomOut;
+    this.background.tileScaleY = mapZoomOut;
+
+    const mapTexture = this.textures.get("backgroundMap").getSourceImage();
+    const visibleMapWidth = this.scale.width / this.background.tileScaleX;
+    const visibleMapHeight = this.scale.height / this.background.tileScaleY;
+    const mapOffsetX = Math.max(0, (mapTexture.width - visibleMapWidth) / 2);
+    const mapOffsetY = Math.max(0, (mapTexture.height - visibleMapHeight) / 2);
+    const mapOffsetYExtra = 10;
+    this.background.tilePositionX = mapOffsetX;
+    this.background.tilePositionY = mapOffsetY + mapOffsetYExtra;
 
     this.laser = this.sound.add("laser");
 
@@ -361,6 +381,12 @@ class scene0 extends Phaser.Scene {
         this.shield.setVisible(false);
       });
     }
+  }
+
+  update() {
+    if (!this.background) return;
+
+    this.background.tilePositionX += this.backgroundSpeed;
   }
 }
 
