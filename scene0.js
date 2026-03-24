@@ -17,6 +17,8 @@ class scene0 extends Phaser.Scene {
     this.button;
     this.buttonArmor;
     this.buttonReload;
+    this.player1Lives = 3;
+    this.player2Lives = 3;
     this.shotsLoaded = 0;
     this.tiro;
     this.tiroTween;
@@ -27,6 +29,7 @@ class scene0 extends Phaser.Scene {
     this.gameOver = false;
     this.scoreText;
     this.ammoText;
+    this.victoryText;
     this.uiFontFamily = "Trebuchet MS, sans-serif";
     this.countdownNumberSize = "64px";
     this.countdownMessageSize = "48px";
@@ -228,6 +231,16 @@ class scene0 extends Phaser.Scene {
       })
       .setOrigin(1, 0);
 
+    this.victoryText = this.add
+      .text(this.scale.width / 2, this.scale.height / 2, "", {
+        fontSize: "72px",
+        fontFamily: this.uiFontFamily,
+        fill: "#00ff88",
+        fontStyle: "bold",
+      })
+      .setOrigin(0.5, 0.5)
+      .setVisible(false);
+
     this.button.on("pointerdown", () => {
       // Impede múltiplas ações na mesma rodada
       if (this.actionExecuted) return;
@@ -281,11 +294,14 @@ class scene0 extends Phaser.Scene {
     this.countdownText.setFontSize(this.countdownMessageSize);
 
     this.time.delayedCall(1000, () => {
+      if (this.gameOver) return;
       this.startRound();
     });
   }
 
   startRound() {
+    if (this.gameOver) return;
+
     this.roundCount += 1;
     this.updateBackgroundSpeedForRound();
 
@@ -360,12 +376,15 @@ class scene0 extends Phaser.Scene {
         }
 
         this.time.delayedCall(500, () => {
+          if (this.gameOver) return;
+
           // Mostra mensagem de preparação antes da próxima rodada.
           this.countdownText.setText("Preparar...");
           this.countdownText.setFill("#00ff00");
           this.countdownText.setFontSize(this.countdownMessageSize);
 
           this.time.delayedCall(1000, () => {
+            if (this.gameOver) return;
             this.startRound();
           });
         });
@@ -419,6 +438,8 @@ class scene0 extends Phaser.Scene {
   }
 
   onTiroHit(tiro, player2) {
+    if (this.gameOver || !tiro.visible) return;
+
     // Tiro atinge o player2
     console.log("Colisão detectada!");
 
@@ -433,6 +454,78 @@ class scene0 extends Phaser.Scene {
 
     // Remove o tiro imediatamente
     tiro.setVisible(false);
+
+    this.applyDamageToPlayer2(1);
+  }
+
+  playDamageFeedback(target) {
+    if (!target || !target.visible) return;
+
+    this.tweens.killTweensOf(target);
+    target.setAlpha(1);
+    target.setTint(0xff6666);
+
+    this.tweens.add({
+      targets: target,
+      alpha: 0.6,
+      duration: 80,
+      yoyo: true,
+      repeat: 1,
+      ease: "Linear",
+      onComplete: () => {
+        target.clearTint();
+        target.setAlpha(1);
+      },
+    });
+  }
+
+  applyDamageToPlayer1(amount = 1) {
+    if (this.gameOver) return;
+
+    this.player1Lives = Math.max(0, this.player1Lives - amount);
+    this.playDamageFeedback(this.player);
+  }
+
+  applyDamageToPlayer2(amount = 1) {
+    if (this.gameOver) return;
+
+    this.player2Lives = Math.max(0, this.player2Lives - amount);
+    this.playDamageFeedback(this.player2);
+
+    if (this.player2Lives <= 0) {
+      this.handlePlayer2Defeat();
+    }
+  }
+
+  handlePlayer2Defeat() {
+    this.gameOver = true;
+    this.roundActive = false;
+
+    if (this.tiroTween) {
+      this.tiroTween.stop();
+      this.tiroTween = null;
+    }
+
+    this.tiro.body.setVelocity(0, 0);
+    this.tiro.setVisible(false);
+
+    this.disableAllButtons(true);
+    this.countdownText.setText("");
+
+    this.tweens.killTweensOf(this.player2);
+    this.player2.clearTint();
+
+    this.tweens.add({
+      targets: this.player2,
+      alpha: 0,
+      scale: 1.35,
+      duration: 250,
+      ease: "Cubic.easeOut",
+      onComplete: () => {
+        this.player2.setVisible(false);
+        this.victoryText.setText("Vitória!").setVisible(true);
+      },
+    });
   }
 
   updateAmmoDisplay() {
