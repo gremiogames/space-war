@@ -19,6 +19,8 @@ class scene0 extends Phaser.Scene {
     this.buttonReload;
     this.player1Lives = 3;
     this.player2Lives = 3;
+    this.player1Hearts = [];
+    this.player2Hearts = [];
     this.shotsLoaded = 0;
     this.tiro;
     this.tiroTween;
@@ -40,17 +42,17 @@ class scene0 extends Phaser.Scene {
     this.roundCount = 0;
     // Ajuste de progressão de tensão por rodada (edite estes valores livremente).
     this.roundThresholds = {
-      to4sAtRound: 5,
-      to3sAtRound: 9,
-      to2sAtRound: 20,
-      to1sAtRound: 36,
+      to4sAtRound: 1,
+      to3sAtRound: 7,
+      to2sAtRound: 19,
+      to1sAtRound: 29,
     };
     this.mapSpeedByPhase = {
-      phase5s: 0.27,
-      phase4s: 0.4,
-      phase3s: 0.7,
-      phase2s: 1.0,
-      phase1s: 1.5,
+      phase5s: 0.29,
+      phase4s: 0.38,
+      phase3s: 0.72,
+      phase2s: 1.2,
+      phase1s: 1.6,
     };
     this.countdownText;
     this.actionExecuted = false; // Controla se uma ação foi executada nesta rodada
@@ -62,7 +64,7 @@ class scene0 extends Phaser.Scene {
     if (this.roundCount >= this.roundThresholds.to2sAtRound) return 2;
     if (this.roundCount >= this.roundThresholds.to3sAtRound) return 3;
     if (this.roundCount >= this.roundThresholds.to4sAtRound) return 4;
-    return 5;
+    return 4;
   }
 
   getRoundDurationMs() {
@@ -80,7 +82,7 @@ class scene0 extends Phaser.Scene {
     } else if (this.roundCount >= this.roundThresholds.to4sAtRound) {
       this.backgroundSpeed = this.mapSpeedByPhase.phase4s;
     } else {
-      this.backgroundSpeed = this.mapSpeedByPhase.phase5s;
+      this.backgroundSpeed = this.mapSpeedByPhase.phase4s;
     }
   }
 
@@ -106,8 +108,14 @@ class scene0 extends Phaser.Scene {
     this.load.image("reloadButton", "assets/Damage_Bonus.png");
 
     this.load.image("shield", "assets/spr_shield.png");
+    this.load.image("heart", "assets/HEART 1.png");
 
     this.load.image("sheet", "assets/map-assets/spritesheet.png");
+    this.load.atlasXML(
+      "sheetAtlas",
+      "assets/map-assets/spritesheet.png",
+      "assets/map-assets/spritesheet.xml",
+    );
 
     this.load.audio("laser", "assets/efeitolaser.mp3");
   }
@@ -166,6 +174,42 @@ class scene0 extends Phaser.Scene {
       .setImmovable(true);
 
     this.player2.body.setAllowGravity(false);
+
+    const sheetTexture = this.textures.get("sheet");
+    if (!sheetTexture.has("exp1_01")) {
+      sheetTexture.add("exp1_01", 0, 56, 305, 52, 51);
+      sheetTexture.add("exp1_02", 0, 164, 305, 52, 51);
+      sheetTexture.add("exp1_03", 0, 326, 305, 52, 51);
+      sheetTexture.add("exp1_04", 0, 218, 305, 52, 51);
+      sheetTexture.add("exp1_05", 0, 272, 305, 52, 51);
+      sheetTexture.add("exp1_06", 0, 110, 305, 52, 51);
+      sheetTexture.add("exp1_07", 0, 2, 305, 52, 51);
+      sheetTexture.add("exp1_08", 0, 152, 252, 52, 51);
+      sheetTexture.add("exp1_09", 0, 260, 252, 52, 51);
+      sheetTexture.add("exp1_10", 0, 422, 252, 52, 51);
+      sheetTexture.add("exp1_11", 0, 314, 252, 52, 51);
+    }
+
+    if (!this.anims.exists("explosion1")) {
+      this.anims.create({
+        key: "explosion1",
+        frames: [
+          { key: "sheet", frame: "exp1_01" },
+          { key: "sheet", frame: "exp1_02" },
+          { key: "sheet", frame: "exp1_03" },
+          { key: "sheet", frame: "exp1_04" },
+          { key: "sheet", frame: "exp1_05" },
+          { key: "sheet", frame: "exp1_06" },
+          { key: "sheet", frame: "exp1_07" },
+          { key: "sheet", frame: "exp1_08" },
+          { key: "sheet", frame: "exp1_09" },
+          { key: "sheet", frame: "exp1_10" },
+          { key: "sheet", frame: "exp1_11" },
+        ],
+        frameRate: 22,
+        repeat: 0,
+      });
+    }
 
     // Botao de tiro clicavel na tela.
     this.button = this.add
@@ -240,6 +284,8 @@ class scene0 extends Phaser.Scene {
       })
       .setOrigin(0.5, 0.5)
       .setVisible(false);
+
+    this.createLivesDisplay();
 
     this.button.on("pointerdown", () => {
       // Impede múltiplas ações na mesma rodada
@@ -484,6 +530,7 @@ class scene0 extends Phaser.Scene {
 
     this.player1Lives = Math.max(0, this.player1Lives - amount);
     this.playDamageFeedback(this.player);
+    this.updateLivesDisplay();
   }
 
   applyDamageToPlayer2(amount = 1) {
@@ -491,6 +538,7 @@ class scene0 extends Phaser.Scene {
 
     this.player2Lives = Math.max(0, this.player2Lives - amount);
     this.playDamageFeedback(this.player2);
+    this.updateLivesDisplay();
 
     if (this.player2Lives <= 0) {
       this.handlePlayer2Defeat();
@@ -515,6 +563,38 @@ class scene0 extends Phaser.Scene {
     this.tweens.killTweensOf(this.player2);
     this.player2.clearTint();
 
+    const showVictory = () => {
+      this.player2.setVisible(false);
+      this.victoryText.setText("Vitória!").setVisible(true);
+    };
+
+    if (this.textures.exists("sheet") && this.anims.exists("explosion1")) {
+      const explosion = this.add
+        .sprite(
+          this.player2.x,
+          this.player2.y + this.player2.displayHeight * 0.5,
+          "sheet",
+          "exp1_01",
+        )
+        .setScale(2.2)
+        .setDepth(this.player2.depth + 2);
+
+      this.player2.setVisible(false);
+      explosion.play("explosion1");
+      explosion.once("animationcomplete", () => {
+        explosion.destroy();
+        showVictory();
+      });
+
+      this.time.delayedCall(900, () => {
+        if (explosion.active) {
+          explosion.destroy();
+          showVictory();
+        }
+      });
+      return;
+    }
+
     this.tweens.add({
       targets: this.player2,
       alpha: 0,
@@ -522,14 +602,64 @@ class scene0 extends Phaser.Scene {
       duration: 250,
       ease: "Cubic.easeOut",
       onComplete: () => {
-        this.player2.setVisible(false);
-        this.victoryText.setText("Vitória!").setVisible(true);
+        showVictory();
       },
     });
   }
 
   updateAmmoDisplay() {
     this.ammoText.setText(`Munição: ${this.shotsLoaded}`);
+  }
+
+  createLivesDisplay() {
+    const heartSize = 30;
+
+    for (let i = 0; i < 3; i += 1) {
+      const p1Heart = this.add
+        .image(0, 0, "heart")
+        .setDisplaySize(heartSize, heartSize)
+        .setScrollFactor(0)
+        .setDepth(30);
+      this.player1Hearts.push(p1Heart);
+
+      const p2Heart = this.add
+        .image(0, 0, "heart")
+        .setDisplaySize(heartSize, heartSize)
+        .setScrollFactor(0)
+        .setDepth(30);
+      this.player2Hearts.push(p2Heart);
+    }
+
+    this.positionLivesDisplay();
+    this.updateLivesDisplay();
+  }
+
+  positionLivesDisplay() {
+    if (!this.player || this.player1Hearts.length === 0) return;
+
+    const heartSpacing = 24;
+    const p1StartX = 24;
+    const p1Y = this.scale.height - 28;
+
+    this.player1Hearts.forEach((heart, index) => {
+      heart.setPosition(p1StartX + index * heartSpacing, p1Y);
+    });
+
+    const p2StartX = 24;
+    const p2Y = 28;
+    this.player2Hearts.forEach((heart, index) => {
+      heart.setPosition(p2StartX + index * heartSpacing, p2Y);
+    });
+  }
+
+  updateLivesDisplay() {
+    this.player1Hearts.forEach((heart, index) => {
+      heart.setVisible(index < this.player1Lives);
+    });
+
+    this.player2Hearts.forEach((heart, index) => {
+      heart.setVisible(index < this.player2Lives);
+    });
   }
 
   enableAllButtons() {
@@ -568,7 +698,7 @@ class scene0 extends Phaser.Scene {
           .setVisible(true);
 
         // Definir velocidade do tiro para cima (negativo = para cima)
-        this.tiro.body.setVelocity(0, -400);
+        this.tiro.body.setVelocity(0, -500);
 
         // Para qualquer tween anterior do tiro
         if (this.tiroTween) {
@@ -579,7 +709,7 @@ class scene0 extends Phaser.Scene {
         this.tiroTween = this.tweens.add({
           targets: this.tiro,
           y: -30,
-          duration: 2000,
+          duration: 1500,
           ease: "Linear",
           onComplete: () => {
             this.tiro.body.setVelocity(0, 0);
@@ -619,6 +749,8 @@ class scene0 extends Phaser.Scene {
     if (this.playerShadow && this.player) {
       this.playerShadow.setPosition(this.player.x, this.player.y - 12);
     }
+
+    this.positionLivesDisplay();
 
     if (!this.background) return;
 
