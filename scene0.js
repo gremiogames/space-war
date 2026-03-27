@@ -1,3 +1,5 @@
+import BotController from "./bot-controller.js";
+
 class scene0 extends Phaser.Scene {
   constructor() {
     super("scene0");
@@ -43,20 +45,29 @@ class scene0 extends Phaser.Scene {
     // Ajuste de progressão de tensão por rodada (edite estes valores livremente).
     this.roundThresholds = {
       to4sAtRound: 1,
-      to3sAtRound: 7,
-      to2sAtRound: 19,
-      to1sAtRound: 29,
+      to3sAtRound: 6,
+      to2sAtRound: 16,
+      to1sAtRound: 25,
     };
     this.mapSpeedByPhase = {
       phase5s: 0.29,
       phase4s: 0.38,
-      phase3s: 0.72,
+      phase3s: 0.77,
       phase2s: 1.2,
       phase1s: 1.6,
     };
     this.countdownText;
     this.actionExecuted = false; // Controla se uma ação foi executada nesta rodada
     this.selectedAction = null; // Armazena qual ação foi selecionada
+    this.botController = new BotController();
+    this.botSelectedAction = null;
+    this.botShotsLoaded = 0;
+    this.botTiro = null;
+    this.botTiroTween = null;
+    this.botShield = null;
+    this.botShieldActive = false;
+    this.botShieldTimerEvent = null;
+    this.botAmmoText = null;
   }
 
   getRoundDurationSeconds() {
@@ -190,6 +201,19 @@ class scene0 extends Phaser.Scene {
       sheetTexture.add("exp1_11", 0, 314, 252, 52, 51);
     }
 
+    if (!sheetTexture.has("expb_01")) {
+      // Sequencia azul da linha de baixo na ordem original do spritesheet (explosion_3_01 -> 09).
+      sheetTexture.add("expb_01", 0, 56, 358, 52, 51);
+      sheetTexture.add("expb_02", 0, 434, 305, 52, 51);
+      sheetTexture.add("expb_03", 0, 2, 358, 52, 51);
+      sheetTexture.add("expb_04", 0, 2, 411, 52, 51);
+      sheetTexture.add("expb_05", 0, 110, 411, 52, 51);
+      sheetTexture.add("expb_06", 0, 56, 411, 52, 51);
+      sheetTexture.add("expb_07", 0, 434, 358, 52, 51);
+      sheetTexture.add("expb_08", 0, 380, 358, 52, 51);
+      sheetTexture.add("expb_09", 0, 326, 358, 52, 51);
+    }
+
     if (!this.anims.exists("explosion1")) {
       this.anims.create({
         key: "explosion1",
@@ -205,6 +229,25 @@ class scene0 extends Phaser.Scene {
           { key: "sheet", frame: "exp1_09" },
           { key: "sheet", frame: "exp1_10" },
           { key: "sheet", frame: "exp1_11" },
+        ],
+        frameRate: 22,
+        repeat: 0,
+      });
+    }
+
+    if (!this.anims.exists("explosion2")) {
+      this.anims.create({
+        key: "explosion2",
+        frames: [
+          { key: "sheet", frame: "expb_01" },
+          { key: "sheet", frame: "expb_02" },
+          { key: "sheet", frame: "expb_03" },
+          { key: "sheet", frame: "expb_04" },
+          { key: "sheet", frame: "expb_05" },
+          { key: "sheet", frame: "expb_06" },
+          { key: "sheet", frame: "expb_07" },
+          { key: "sheet", frame: "expb_08" },
+          { key: "sheet", frame: "expb_09" },
         ],
         frameRate: 22,
         repeat: 0,
@@ -243,14 +286,28 @@ class scene0 extends Phaser.Scene {
       .setScale(3.2)
       .setVisible(false);
 
+    // Tiro do bot inicia escondido e sai do jogador superior.
+    this.botTiro = this.physics.add
+      .image(x, yOpposite + 80, "sheet", "plasma_1")
+      .setScale(3.2)
+      .setVisible(false);
+
     // Configurar física do tiro
     this.tiro.body.setAllowGravity(false);
     this.tiro.setDisplaySize(30, 50);
+    this.botTiro.body.setAllowGravity(false);
+    this.botTiro.setDisplaySize(30, 50);
 
     // Escudo inicia escondido sobre o player.
     this.shield = this.add
       .image(this.player.x, this.player.y - 35, "shield")
       .setDisplaySize(110, 110)
+      .setVisible(false);
+
+    // Escudo do bot inicia escondido sobre o player2.
+    this.botShield = this.add
+      .image(this.player2.x, this.player2.y + 54, "shield")
+      .setDisplaySize(126, 126)
       .setVisible(false);
 
     // Texto de contagem regressiva no centro da tela
@@ -274,6 +331,20 @@ class scene0 extends Phaser.Scene {
         padding: { x: 15, y: 10 },
       })
       .setOrigin(1, 0);
+
+    // HUD de teste para visualizar a munição atual do bot.
+    this.botAmmoText = this.add
+      .text(24, 56, `Player 2 munição: ${this.botShotsLoaded}`, {
+        fontSize: "12px",
+        fontFamily: this.uiFontFamily,
+        fill: "#ffcc66",
+        fontStyle: "bold",
+        backgroundColor: "#000000",
+        padding: { x: 6, y: 3 },
+      })
+      .setOrigin(0, 0)
+      .setAlpha(0.9)
+      .setDepth(40);
 
     this.victoryText = this.add
       .text(this.scale.width / 2, this.scale.height / 2, "", {
@@ -329,6 +400,22 @@ class scene0 extends Phaser.Scene {
       this,
     );
 
+    this.physics.add.overlap(
+      this.botTiro,
+      this.player,
+      this.onBotTiroHit,
+      null,
+      this,
+    );
+
+    this.physics.add.overlap(
+      this.tiro,
+      this.botTiro,
+      this.onShotsClash,
+      null,
+      this,
+    );
+
     // Mostra preparação inicial e inicia a primeira rodada.
     this.showPrepareAndStartRound();
   }
@@ -358,10 +445,22 @@ class scene0 extends Phaser.Scene {
     }
     this.shieldActive = false;
     this.shield.setAlpha(1).setVisible(false);
+    if (this.botShieldTimerEvent) {
+      this.botShieldTimerEvent.remove(false);
+      this.botShieldTimerEvent = null;
+    }
+    this.botShieldActive = false;
+    this.botShield.setAlpha(1).setVisible(false);
 
     // Reseta o estado para permitir nova ação
     this.actionExecuted = false;
     this.selectedAction = null;
+    this.botSelectedAction = this.botController.chooseAction({
+      botShotsLoaded: this.botShotsLoaded,
+      playerShotsLoaded: this.shotsLoaded,
+      playerShieldActive: this.shieldActive,
+      botShieldActive: this.botShieldActive,
+    });
 
     // Habilita todos os botões
     this.enableAllButtons();
@@ -399,7 +498,7 @@ class scene0 extends Phaser.Scene {
 
       // Desabilita todos os botões quando a contagem termina e aplica visual inativo.
       this.disableAllButtons(true);
-      this.executeAction();
+      this.executeRoundActions();
       this.disableAllButtons(true);
 
       // Aguarda 1,5 segundo com "Ação!" exibido.
@@ -417,6 +516,20 @@ class scene0 extends Phaser.Scene {
             onComplete: () => {
               this.shieldActive = false;
               this.shield.setAlpha(1).setVisible(false);
+            },
+          });
+        }
+
+        if (this.botShield.visible) {
+          this.tweens.killTweensOf(this.botShield);
+          this.tweens.add({
+            targets: this.botShield,
+            alpha: 0,
+            duration: 500,
+            ease: "Linear",
+            onComplete: () => {
+              this.botShieldActive = false;
+              this.botShield.setAlpha(1).setVisible(false);
             },
           });
         }
@@ -462,7 +575,7 @@ class scene0 extends Phaser.Scene {
     // Após 3 segundos, executa a ação
     this.time.delayedCall(3000, () => {
       this.revealText.setVisible(false);
-      this.executeAction();
+      this.executeRoundActions();
 
       // Aguarda 500ms e inicia nova rodada
       this.time.delayedCall(500, () => {
@@ -501,7 +614,70 @@ class scene0 extends Phaser.Scene {
     // Remove o tiro imediatamente
     tiro.setVisible(false);
 
+    if (this.botShieldActive) {
+      return;
+    }
+
     this.applyDamageToPlayer2(1);
+  }
+
+  onBotTiroHit(botTiro, player) {
+    if (this.gameOver || !botTiro.visible) return;
+
+    if (this.botTiroTween) {
+      this.botTiroTween.stop();
+      this.botTiroTween = null;
+    }
+
+    botTiro.body.setVelocity(0, 0);
+    botTiro.setVisible(false);
+
+    if (this.shieldActive) {
+      return;
+    }
+
+    this.applyDamageToPlayer1(1);
+  }
+
+  onShotsClash(tiro, botTiro) {
+    if (this.gameOver || !tiro.visible || !botTiro.visible) return;
+
+    const clashX = (tiro.x + botTiro.x) * 0.5;
+    const clashY = (tiro.y + botTiro.y) * 0.5;
+
+    if (this.tiroTween) {
+      this.tiroTween.stop();
+      this.tiroTween = null;
+    }
+
+    if (this.botTiroTween) {
+      this.botTiroTween.stop();
+      this.botTiroTween = null;
+    }
+
+    tiro.body.setVelocity(0, 0);
+    botTiro.body.setVelocity(0, 0);
+    tiro.setVisible(false);
+    botTiro.setVisible(false);
+
+    if (this.anims.exists("explosion2")) {
+      const clashExplosion = this.add
+        .sprite(clashX, clashY, "sheet", "expb_01")
+        .setScale(1.6)
+        .setDepth(Math.max(tiro.depth, botTiro.depth) + 2);
+
+      clashExplosion.play("explosion2");
+
+      clashExplosion.once("animationcomplete", () => {
+        clashExplosion.destroy();
+      });
+
+      this.time.delayedCall(650, () => {
+        if (clashExplosion.active) {
+          clashExplosion.destroy();
+        }
+      });
+    }
   }
 
   playDamageFeedback(target) {
@@ -531,6 +707,10 @@ class scene0 extends Phaser.Scene {
     this.player1Lives = Math.max(0, this.player1Lives - amount);
     this.playDamageFeedback(this.player);
     this.updateLivesDisplay();
+
+    if (this.player1Lives <= 0) {
+      this.handlePlayer1Defeat();
+    }
   }
 
   applyDamageToPlayer2(amount = 1) {
@@ -554,8 +734,15 @@ class scene0 extends Phaser.Scene {
       this.tiroTween = null;
     }
 
+    if (this.botTiroTween) {
+      this.botTiroTween.stop();
+      this.botTiroTween = null;
+    }
+
     this.tiro.body.setVelocity(0, 0);
     this.tiro.setVisible(false);
+    this.botTiro.body.setVelocity(0, 0);
+    this.botTiro.setVisible(false);
 
     this.disableAllButtons(true);
     this.countdownText.setText("");
@@ -607,8 +794,81 @@ class scene0 extends Phaser.Scene {
     });
   }
 
+  handlePlayer1Defeat() {
+    this.gameOver = true;
+    this.roundActive = false;
+
+    if (this.tiroTween) {
+      this.tiroTween.stop();
+      this.tiroTween = null;
+    }
+
+    if (this.botTiroTween) {
+      this.botTiroTween.stop();
+      this.botTiroTween = null;
+    }
+
+    this.tiro.body.setVelocity(0, 0);
+    this.tiro.setVisible(false);
+    this.botTiro.body.setVelocity(0, 0);
+    this.botTiro.setVisible(false);
+
+    this.disableAllButtons(true);
+    this.countdownText.setText("");
+
+    this.tweens.killTweensOf(this.player);
+    this.player.clearTint();
+
+    const showDefeat = () => {
+      this.player.setVisible(false);
+      this.victoryText.setText("Derrota!").setVisible(true).setFill("#ff3355");
+    };
+
+    if (this.textures.exists("sheet") && this.anims.exists("explosion1")) {
+      const explosion = this.add
+        .sprite(
+          this.player.x,
+          this.player.y,
+          "sheet",
+          "exp1_01",
+        )
+        .setScale(2.2)
+        .setDepth(this.player.depth + 2);
+
+      this.player.setVisible(false);
+      explosion.play("explosion1");
+      explosion.once("animationcomplete", () => {
+        explosion.destroy();
+        showDefeat();
+      });
+
+      this.time.delayedCall(900, () => {
+        if (explosion.active) {
+          explosion.destroy();
+          showDefeat();
+        }
+      });
+      return;
+    }
+
+    this.tweens.add({
+      targets: this.player,
+      alpha: 0,
+      scale: 1.35,
+      duration: 250,
+      ease: "Cubic.easeOut",
+      onComplete: () => {
+        showDefeat();
+      },
+    });
+  }
+
   updateAmmoDisplay() {
     this.ammoText.setText(`Munição: ${this.shotsLoaded}`);
+  }
+
+  updateBotAmmoDisplay() {
+    this.botAmmoText.setText(`Player 2 munição: ${this.botShotsLoaded}`);
   }
 
   createLivesDisplay() {
@@ -650,6 +910,10 @@ class scene0 extends Phaser.Scene {
     this.player2Hearts.forEach((heart, index) => {
       heart.setPosition(p2StartX + index * heartSpacing, p2Y);
     });
+
+    if (this.botAmmoText) {
+      this.botAmmoText.setPosition(p2StartX, p2Y + 22);
+    }
   }
 
   updateLivesDisplay() {
@@ -678,7 +942,12 @@ class scene0 extends Phaser.Scene {
     this.buttonArmor.setAlpha(1);
   }
 
-  executeAction() {
+  executeRoundActions() {
+    this.executePlayerAction();
+    this.executeBotAction();
+  }
+
+  executePlayerAction() {
     // Executa apenas a ação selecionada
     if (!this.selectedAction) return;
 
@@ -745,9 +1014,70 @@ class scene0 extends Phaser.Scene {
     }
   }
 
+  executeBotAction() {
+    if (!this.botSelectedAction) return;
+
+    if (this.botSelectedAction === "shoot") {
+      if (this.botShotsLoaded > 0 && !this.botTiro.visible) {
+        this.botShotsLoaded -= 1;
+        this.updateBotAmmoDisplay();
+
+        this.laser.play({ volume: 0.5 });
+
+        this.botTiro
+          .setPosition(this.player2.x, this.player2.y + 80)
+          .setVisible(true);
+
+        this.botTiro.body.setVelocity(0, 500);
+
+        if (this.botTiroTween) {
+          this.botTiroTween.stop();
+        }
+
+        this.botTiroTween = this.tweens.add({
+          targets: this.botTiro,
+          y: this.scale.height + 30,
+          duration: 1500,
+          ease: "Linear",
+          onComplete: () => {
+            this.botTiro.body.setVelocity(0, 0);
+            this.botTiro.setVisible(false);
+          },
+        });
+      }
+    } else if (this.botSelectedAction === "reload") {
+      this.botShotsLoaded += 1;
+      this.updateBotAmmoDisplay();
+    } else if (this.botSelectedAction === "armor") {
+      this.botShieldActive = true;
+      this.botShield
+        .setPosition(this.player2.x, this.player2.y + 54)
+        .setAlpha(1)
+        .setVisible(true);
+
+      if (this.botShieldTimerEvent) {
+        this.botShieldTimerEvent.remove(false);
+      }
+
+      this.botShieldTimerEvent = this.time.delayedCall(2500, () => {
+        this.botShieldActive = false;
+        this.botShield.setVisible(false);
+        this.botShieldTimerEvent = null;
+      });
+    }
+  }
+
   update() {
     if (this.playerShadow && this.player) {
       this.playerShadow.setPosition(this.player.x, this.player.y - 12);
+    }
+
+    if (this.shield && this.player) {
+      this.shield.setPosition(this.player.x, this.player.y - 35);
+    }
+
+    if (this.botShield && this.player2) {
+      this.botShield.setPosition(this.player2.x, this.player2.y + 54);
     }
 
     this.positionLivesDisplay();
