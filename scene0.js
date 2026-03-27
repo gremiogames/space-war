@@ -52,7 +52,7 @@ class scene0 extends Phaser.Scene {
     this.mapSpeedByPhase = {
       phase5s: 0.29,
       phase4s: 0.38,
-      phase3s: 0.80,
+      phase3s: 0.8,
       phase2s: 1.25,
       phase1s: 1.8,
       phaseExact1s: 2.2,
@@ -141,7 +141,10 @@ class scene0 extends Phaser.Scene {
       "fullReload",
       "assets/melbeebelbee-gun-full-reload-384507.mp3",
     );
-    this.load.audio("shieldSfx", "assets/freesound_community-analog-lazer-fx-87122.mp3");
+    this.load.audio(
+      "shieldSfx",
+      "assets/freesound_community-analog-lazer-fx-87122.mp3",
+    );
     this.load.audio("gameMusic", "assets/musicajogo.mp3");
   }
 
