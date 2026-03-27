@@ -10,7 +10,6 @@ class scene0 extends Phaser.Scene {
     this.backgroundMinX = 0;
     this.backgroundMaxX = 0;
     this.player;
-    this.playerShadow;
     this.player2;
     this.stars;
     this.bombs;
@@ -45,16 +44,18 @@ class scene0 extends Phaser.Scene {
     // Ajuste de progressão de tensão por rodada (edite estes valores livremente).
     this.roundThresholds = {
       to4sAtRound: 1,
-      to3sAtRound: 6,
+      to3sAtRound: 7,
       to2sAtRound: 16,
-      to1sAtRound: 25,
+      to1sAtRound: 27,
+      toExact1sAtRound: 35,
     };
     this.mapSpeedByPhase = {
       phase5s: 0.29,
       phase4s: 0.38,
-      phase3s: 0.77,
-      phase2s: 1.2,
-      phase1s: 1.6,
+      phase3s: 0.80,
+      phase2s: 1.25,
+      phase1s: 1.8,
+      phaseExact1s: 2.2,
     };
     this.countdownText;
     this.actionExecuted = false; // Controla se uma ação foi executada nesta rodada
@@ -68,9 +69,13 @@ class scene0 extends Phaser.Scene {
     this.botShieldActive = false;
     this.botShieldTimerEvent = null;
     this.botAmmoText = null;
+    this.fullReloadSfx = null;
+    this.shieldSfx = null;
+    this.gameMusic = null;
   }
 
   getRoundDurationSeconds() {
+    if (this.roundCount >= this.roundThresholds.toExact1sAtRound) return 1;
     if (this.roundCount >= this.roundThresholds.to1sAtRound) return 1;
     if (this.roundCount >= this.roundThresholds.to2sAtRound) return 2;
     if (this.roundCount >= this.roundThresholds.to3sAtRound) return 3;
@@ -79,12 +84,15 @@ class scene0 extends Phaser.Scene {
   }
 
   getRoundDurationMs() {
+    if (this.roundCount >= this.roundThresholds.toExact1sAtRound) return 1000;
     if (this.roundCount >= this.roundThresholds.to1sAtRound) return 1500;
     return this.getRoundDurationSeconds() * 1000;
   }
 
   updateBackgroundSpeedForRound() {
-    if (this.roundCount >= this.roundThresholds.to1sAtRound) {
+    if (this.roundCount >= this.roundThresholds.toExact1sAtRound) {
+      this.backgroundSpeed = this.mapSpeedByPhase.phaseExact1s;
+    } else if (this.roundCount >= this.roundThresholds.to1sAtRound) {
       this.backgroundSpeed = this.mapSpeedByPhase.phase1s;
     } else if (this.roundCount >= this.roundThresholds.to2sAtRound) {
       this.backgroundSpeed = this.mapSpeedByPhase.phase2s;
@@ -129,6 +137,12 @@ class scene0 extends Phaser.Scene {
     );
 
     this.load.audio("laser", "assets/efeitolaser.mp3");
+    this.load.audio(
+      "fullReload",
+      "assets/melbeebelbee-gun-full-reload-384507.mp3",
+    );
+    this.load.audio("shieldSfx", "assets/freesound_community-analog-lazer-fx-87122.mp3");
+    this.load.audio("gameMusic", "assets/musicajogo.mp3");
   }
 
   create() {
@@ -159,6 +173,16 @@ class scene0 extends Phaser.Scene {
     this.background.tilePositionY = mapOffsetY + mapOffsetYExtra;
 
     this.laser = this.sound.add("laser");
+    this.fullReloadSfx = this.sound.add("fullReload");
+    this.shieldSfx = this.sound.add("shieldSfx");
+    this.gameMusic = this.sound.add("gameMusic", {
+      loop: true,
+      volume: 0.35,
+    });
+
+    if (!this.gameMusic.isPlaying) {
+      this.gameMusic.play();
+    }
 
     this.player = this.physics.add
       .sprite(x, y, "player1")
@@ -167,16 +191,6 @@ class scene0 extends Phaser.Scene {
       .setImmovable(true);
 
     this.player.body.setAllowGravity(false);
-
-    // Registra o frame da sombra do jogador 1 dentro da textura "sheet".
-    this.textures.get("sheet").add("player_shadow_m", 0, 68, 675, 64, 64);
-
-    // Sombra apenas do jogador 1.
-    this.playerShadow = this.add
-      .image(this.player.x, this.player.y - 12, "sheet", "player_shadow_m")
-      .setScale(playerScale * 1.02)
-      .setAlpha(0.35)
-      .setDepth(this.player.depth - 1);
 
     this.player2 = this.physics.add
       .sprite(x, yOpposite, "player2")
@@ -828,7 +842,7 @@ class scene0 extends Phaser.Scene {
       const explosion = this.add
         .sprite(
           this.player.x,
-          this.player.y,
+          this.player.y - this.player.displayHeight * 0.5,
           "sheet",
           "exp1_01",
         )
@@ -992,9 +1006,15 @@ class scene0 extends Phaser.Scene {
       this.updateAmmoDisplay();
       this.button.setAlpha(1);
       this.buttonReload.setAlpha(0.6);
+      if (this.fullReloadSfx) {
+        this.fullReloadSfx.play({ volume: 0.45 });
+      }
     } else if (this.selectedAction === "armor") {
       // Ativa o escudo
       this.shieldActive = true;
+      if (this.shieldSfx) {
+        this.shieldSfx.play({ volume: 0.45 });
+      }
       this.shield
         .setPosition(this.player.x, this.player.y - 35)
         .setAlpha(1)
@@ -1048,8 +1068,14 @@ class scene0 extends Phaser.Scene {
     } else if (this.botSelectedAction === "reload") {
       this.botShotsLoaded += 1;
       this.updateBotAmmoDisplay();
+      if (this.fullReloadSfx) {
+        this.fullReloadSfx.play({ volume: 0.45 });
+      }
     } else if (this.botSelectedAction === "armor") {
       this.botShieldActive = true;
+      if (this.shieldSfx) {
+        this.shieldSfx.play({ volume: 0.45 });
+      }
       this.botShield
         .setPosition(this.player2.x, this.player2.y + 54)
         .setAlpha(1)
@@ -1068,10 +1094,6 @@ class scene0 extends Phaser.Scene {
   }
 
   update() {
-    if (this.playerShadow && this.player) {
-      this.playerShadow.setPosition(this.player.x, this.player.y - 12);
-    }
-
     if (this.shield && this.player) {
       this.shield.setPosition(this.player.x, this.player.y - 35);
     }

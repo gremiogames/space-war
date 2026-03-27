@@ -4,13 +4,15 @@ class TelaInicial extends Phaser.Scene {
 		this.playOfflineButton = null;
 		this.playOnlineButton = null;
 		this.statusText = null;
+		this.menuMusic = null;
 	}
 
 	preload() {
 		this.load.image(
 			"menuBackground",
-			"assets/Gemini_Generated_Image_g74ytrg74ytrg74y.png",
+			"assets/telamenu2.png",
 		);
+		this.load.audio("menuMusic", "assets/musicamenu.mp3");
 	}
 
 	create() {
@@ -23,6 +25,21 @@ class TelaInicial extends Phaser.Scene {
 			.setDisplaySize(width, height)
 			.setDepth(-1);
 
+		this.menuMusic = this.sound.get("menuMusic") || this.sound.add("menuMusic", {
+			loop: true,
+			volume: 0.35,
+		});
+
+		if (!this.menuMusic.isPlaying) {
+			this.menuMusic.play();
+		}
+
+		this.events.once("shutdown", () => {
+			if (this.menuMusic && this.menuMusic.isPlaying) {
+				this.menuMusic.stop();
+			}
+		});
+
 		this.playOfflineButton = this.createButton({
 			x: width / 2,
 			y: height * 0.72,
@@ -30,6 +47,9 @@ class TelaInicial extends Phaser.Scene {
 			fillColor: 0x0f0f0f,
 			hoverColor: 0x1b1b1b,
 			onClick: () => {
+				if (this.menuMusic && this.menuMusic.isPlaying) {
+					this.menuMusic.stop();
+				}
 				this.scene.start("scene0");
 			},
 		});
