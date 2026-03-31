@@ -156,6 +156,32 @@ class scene0 extends Phaser.Scene {
     const yOpposite = 75;
     const playerScale = 1.15;
 
+    // Reinicia estado da partida ao entrar na cena novamente via menu.
+    this.gameOver = false;
+    this.roundActive = false;
+    this.roundCount = 0;
+    this.player1Lives = 3;
+    this.player2Lives = 3;
+    this.player1Hearts = [];
+    this.player2Hearts = [];
+    this.shotsLoaded = 0;
+    this.botShotsLoaded = 0;
+    this.actionExecuted = false;
+    this.selectedAction = null;
+    this.botSelectedAction = null;
+    this.shieldActive = false;
+    this.botShieldActive = false;
+
+    if (this.shieldTimerEvent) {
+      this.shieldTimerEvent.remove(false);
+      this.shieldTimerEvent = null;
+    }
+
+    if (this.botShieldTimerEvent) {
+      this.botShieldTimerEvent.remove(false);
+      this.botShieldTimerEvent = null;
+    }
+
     this.background = this.add
       .tileSprite(0, 0, this.scale.width, this.scale.height, "backgroundMap")
       .setOrigin(0, 0)
