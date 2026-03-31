@@ -34,9 +34,9 @@ class BotController {
       return "shoot";
     }
 
-    // Mantém a regra da primeira rodada/início: sem munição, prioriza recarga.
+    // Sem munição: prioriza recarga, mas pode optar por escudo.
     if (botShotsLoaded <= 0) {
-      return Math.random() < 0.9 ? "reload" : "armor";
+      return Math.random() < 0.7 ? "reload" : "armor";
     }
 
     // Nova regra: se o player tem munição, baseia em 40/30/30.
