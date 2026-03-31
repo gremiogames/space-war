@@ -8,7 +8,9 @@ let fallbackCoins = 0;
 let lastRewardAmount = 0;
 
 function canUseStorage() {
-  return typeof window !== "undefined" && typeof window.localStorage !== "undefined";
+  return (
+    typeof window !== "undefined" && typeof window.localStorage !== "undefined"
+  );
 }
 
 function normalizeCoins(value) {
@@ -150,7 +152,9 @@ TelaInicial.prototype.create = function patchedMenuCreate(...args) {
 };
 
 const originalHandlePlayer2Defeat = Scene0.prototype.handlePlayer2Defeat;
-Scene0.prototype.handlePlayer2Defeat = function patchedHandlePlayer2Defeat(...args) {
+Scene0.prototype.handlePlayer2Defeat = function patchedHandlePlayer2Defeat(
+  ...args
+) {
   if (!this.__coinsRewardGranted) {
     this.__coinsRewardGranted = true;
     rewardVictory(this.roundCount || 0);
@@ -160,7 +164,9 @@ Scene0.prototype.handlePlayer2Defeat = function patchedHandlePlayer2Defeat(...ar
 };
 
 const originalHandlePlayer1Defeat = Scene0.prototype.handlePlayer1Defeat;
-Scene0.prototype.handlePlayer1Defeat = function patchedHandlePlayer1Defeat(...args) {
+Scene0.prototype.handlePlayer1Defeat = function patchedHandlePlayer1Defeat(
+  ...args
+) {
   if (!this.__coinsRewardGranted) {
     this.__coinsRewardGranted = true;
     rewardDefeat(this.roundCount || 0);

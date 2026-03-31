@@ -11,7 +11,7 @@ class Game extends Phaser.Game {
     this.scene.add("scene0", scene0);
     this.scene.start("telainicial");
   }
-}    
+}
 
 async function waitForPixelFont() {
   if (!document.fonts || !document.fonts.load) return;

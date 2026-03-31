@@ -947,7 +947,7 @@ class scene0 extends Phaser.Scene {
 
     // Exibir ganho de moedas embaixo da mensagem
     const rewardAmount = window.BancoMoedas?.getLastRewardAmount?.() || 0;
-    
+
     if (!this.rewardText) {
       this.rewardText = this.add
         .text(this.cameras.main.centerX, this.cameras.main.centerY + 80, "", {
@@ -965,10 +965,7 @@ class scene0 extends Phaser.Scene {
     }
 
     if (rewardAmount > 0) {
-      this.rewardText
-        .setText(`+ ${rewardAmount}`)
-        .setAlpha(0)
-        .setVisible(true);
+      this.rewardText.setText(`+ ${rewardAmount}`).setAlpha(0).setVisible(true);
 
       this.tweens.add({
         targets: this.rewardText,
@@ -981,7 +978,11 @@ class scene0 extends Phaser.Scene {
       // Adicionar ícone de moeda pequeno se existir
       if (!this.rewardCoinIcon) {
         this.rewardCoinIcon = this.add
-          .image(this.cameras.main.centerX + 90, this.cameras.main.centerY + 80, "coinIcon")
+          .image(
+            this.cameras.main.centerX + 90,
+            this.cameras.main.centerY + 80,
+            "coinIcon",
+          )
           .setOrigin(0, 0.5)
           .setDisplaySize(70, 35)
           .setAlpha(0)
@@ -991,9 +992,7 @@ class scene0 extends Phaser.Scene {
       }
 
       if (this.textures.exists("coinIcon")) {
-        this.rewardCoinIcon
-          .setAlpha(0)
-          .setVisible(true);
+        this.rewardCoinIcon.setAlpha(0).setVisible(true);
 
         this.tweens.add({
           targets: this.rewardCoinIcon,
