@@ -944,6 +944,66 @@ class scene0 extends Phaser.Scene {
       duration: 420,
       ease: "Quad.easeOut",
     });
+
+    // Exibir ganho de moedas embaixo da mensagem
+    const rewardAmount = window.BancoMoedas?.getLastRewardAmount?.() || 0;
+    
+    if (!this.rewardText) {
+      this.rewardText = this.add
+        .text(this.cameras.main.centerX, this.cameras.main.centerY + 80, "", {
+          fontFamily: '"Press Start 2P", monospace',
+          fontSize: "16px",
+          color: "#fff4ba",
+          stroke: "#2c1a00",
+          strokeThickness: 2,
+          align: "center",
+        })
+        .setOrigin(0.5)
+        .setAlpha(0)
+        .setVisible(false)
+        .setDepth(this.victoryText.depth + 1);
+    }
+
+    if (rewardAmount > 0) {
+      this.rewardText
+        .setText(`+ ${rewardAmount}`)
+        .setAlpha(0)
+        .setVisible(true);
+
+      this.tweens.add({
+        targets: this.rewardText,
+        alpha: 1,
+        duration: 500,
+        ease: "Quad.easeOut",
+        delay: 200,
+      });
+
+      // Adicionar ícone de moeda pequeno se existir
+      if (!this.rewardCoinIcon) {
+        this.rewardCoinIcon = this.add
+          .image(this.cameras.main.centerX + 90, this.cameras.main.centerY + 80, "coinIcon")
+          .setOrigin(0, 0.5)
+          .setDisplaySize(70, 35)
+          .setAlpha(0)
+          .setVisible(false)
+          .setDepth(this.victoryText.depth + 1)
+          .setScrollFactor(0);
+      }
+
+      if (this.textures.exists("coinIcon")) {
+        this.rewardCoinIcon
+          .setAlpha(0)
+          .setVisible(true);
+
+        this.tweens.add({
+          targets: this.rewardCoinIcon,
+          alpha: 1,
+          duration: 500,
+          ease: "Quad.easeOut",
+          delay: 200,
+        });
+      }
+    }
   }
 
   scheduleReturnToMenu(delayMs = 4000) {

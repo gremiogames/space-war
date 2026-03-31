@@ -1,6 +1,7 @@
 import config from "./config.js";
 import scene0 from "./scene0.js";
 import TelaInicial from "./telainicial.js";
+import "./banco.js";
 
 class Game extends Phaser.Game {
   constructor() {
