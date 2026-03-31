@@ -72,6 +72,8 @@ class scene0 extends Phaser.Scene {
     this.fullReloadSfx = null;
     this.shieldSfx = null;
     this.gameMusic = null;
+    this.returnToMenuEvent = null;
+    this.returnToMenuScheduled = false;
   }
 
   getRoundDurationSeconds() {
@@ -186,6 +188,20 @@ class scene0 extends Phaser.Scene {
     if (!this.gameMusic.isPlaying) {
       this.gameMusic.play();
     }
+
+    this.returnToMenuScheduled = false;
+    this.returnToMenuEvent = null;
+
+    this.events.once("shutdown", () => {
+      if (this.returnToMenuEvent) {
+        this.returnToMenuEvent.remove(false);
+        this.returnToMenuEvent = null;
+      }
+
+      if (this.gameMusic && this.gameMusic.isPlaying) {
+        this.gameMusic.stop();
+      }
+    });
 
     this.player = this.physics.add
       .sprite(x, y, "player1")
@@ -769,7 +785,8 @@ class scene0 extends Phaser.Scene {
 
     const showVictory = () => {
       this.player2.setVisible(false);
-      this.victoryText.setText("Vitória!").setVisible(true);
+      this.showEndMessageWithFade("Vitória!");
+      this.scheduleReturnToMenu();
     };
 
     if (this.textures.exists("sheet") && this.anims.exists("explosion1")) {
@@ -838,7 +855,8 @@ class scene0 extends Phaser.Scene {
 
     const showDefeat = () => {
       this.player.setVisible(false);
-      this.victoryText.setText("Derrota!").setVisible(true).setFill("#ff3355");
+      this.showEndMessageWithFade("Derrota!", "#ff3355");
+      this.scheduleReturnToMenu();
     };
 
     if (this.textures.exists("sheet") && this.anims.exists("explosion1")) {
@@ -882,6 +900,46 @@ class scene0 extends Phaser.Scene {
 
   updateAmmoDisplay() {
     this.ammoText.setText(`Munição: ${this.shotsLoaded}`);
+  }
+
+  showEndMessageWithFade(message, color = "#00ff88") {
+    this.tweens.killTweensOf(this.victoryText);
+    this.victoryText
+      .setText(message)
+      .setFill(color)
+      .setAlpha(0)
+      .setScale(0.92)
+      .setVisible(true);
+
+    this.tweens.add({
+      targets: this.victoryText,
+      alpha: 1,
+      scale: 1,
+      duration: 420,
+      ease: "Quad.easeOut",
+    });
+  }
+
+  scheduleReturnToMenu(delayMs = 4000) {
+    if (this.returnToMenuScheduled) return;
+
+    this.returnToMenuScheduled = true;
+    this.returnToMenuEvent = this.time.delayedCall(delayMs, () => {
+      const goToMenu = () => {
+        if (this.gameMusic && this.gameMusic.isPlaying) {
+          this.gameMusic.stop();
+        }
+        this.scene.start("telainicial");
+      };
+
+      if (this.cameras && this.cameras.main) {
+        this.cameras.main.once("camerafadeoutcomplete", goToMenu);
+        this.cameras.main.fadeOut(550, 0, 0, 0);
+        return;
+      }
+
+      goToMenu();
+    });
   }
 
   updateBotAmmoDisplay() {
