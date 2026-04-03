@@ -154,7 +154,8 @@ class scene0 extends Phaser.Scene {
     const x = this.scale.width / 2;
     const y = this.scale.height - 75;
     const yOpposite = 75;
-    const playerScale = 1.15;
+    const playerScale = 1.85;
+    const botScale = 1.25;
 
     // Reinicia estado da partida ao entrar na cena novamente via menu.
     this.gameOver = false;
@@ -239,7 +240,7 @@ class scene0 extends Phaser.Scene {
 
     this.player2 = this.physics.add
       .sprite(x, yOpposite, "player2")
-      .setScale(playerScale)
+      .setScale(botScale)
       .setOrigin(0.5, 0)
       .setImmovable(true);
 

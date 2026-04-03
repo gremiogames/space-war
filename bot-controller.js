@@ -2,7 +2,7 @@ class BotController {
   constructor() {
     // Modo de teste: limita o bot apenas a recarregar e atirar.
     // Defina como false para voltar ao comportamento normal.
-    this.forceShootReloadOnly = true;
+    this.forceShootReloadOnly = false;
   }
 
   weightedPick(weightMap) {
