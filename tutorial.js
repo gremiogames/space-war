@@ -8,7 +8,8 @@ class Tutorial extends Phaser.Scene {
         this.tutorialHeartIcon = null;
         this.tutorialShootIcon = null;
         this.tutorialShieldIcon = null;
-        this.tutorialTimerEvent = null;
+        this.tutorialNextButton = null;
+        this.tutorialNextText = null;
         this.tutorialStepIndex = 0;
         this.tutorialSteps = [];
     }
@@ -100,6 +101,7 @@ class Tutorial extends Phaser.Scene {
             .setDepth(5);
 
         let backText = null;
+        let nextText = null;
 
         this.backButton = this.add
             .rectangle(width / 2, height * 0.82, 220, 44, 0x0f0f0f)
@@ -109,7 +111,7 @@ class Tutorial extends Phaser.Scene {
             .setInteractive({ useHandCursor: true });
 
         backText = this.add
-            .text(width / 2, height * 0.82, "Voltar", {
+            .text(width / 2, height * 0.82, "Menu", {
                 fontFamily: pixelFont,
                 fontSize: "14px",
                 fontStyle: "bold",
@@ -117,6 +119,37 @@ class Tutorial extends Phaser.Scene {
             })
             .setOrigin(0.5)
             .setVisible(false);
+
+        this.tutorialNextButton = this.add
+            .rectangle(width / 2, height * 0.82, 220, 44, 0x0f0f0f)
+            .setStrokeStyle(2, 0x2a2a2a)
+            .setAlpha(0.58)
+            .setInteractive({ useHandCursor: true });
+
+        nextText = this.add
+            .text(width / 2, height * 0.82, "Proximo", {
+                fontFamily: pixelFont,
+                fontSize: "14px",
+                fontStyle: "bold",
+                color: "#ededed",
+            })
+            .setOrigin(0.5);
+
+        this.tutorialNextButton.on("pointerover", () => {
+            this.tutorialNextButton.setFillStyle(0x1b1b1b);
+            this.tutorialNextButton.setAlpha(0.66);
+            nextText.setScale(1.03);
+        });
+
+        this.tutorialNextButton.on("pointerout", () => {
+            this.tutorialNextButton.setFillStyle(0x0f0f0f);
+            this.tutorialNextButton.setAlpha(0.58);
+            nextText.setScale(1);
+        });
+
+        this.tutorialNextButton.on("pointerdown", () => {
+            showStep();
+        });
 
         this.backButton.on("pointerover", () => {
             this.backButton.setFillStyle(0x1b1b1b);
@@ -145,10 +178,9 @@ class Tutorial extends Phaser.Scene {
 
             const isLastStep = this.tutorialStepIndex === this.tutorialSteps.length - 1;
             this.backButton.setVisible(isLastStep);
-
-            if (backText) {
-                backText.setVisible(isLastStep);
-            }
+            backText.setVisible(isLastStep);
+            this.tutorialNextButton.setVisible(!isLastStep);
+            nextText.setVisible(!isLastStep);
 
             if (step.icons?.includes("reload")) {
                 this.tutorialReloadIcon.setVisible(true);
@@ -165,21 +197,7 @@ class Tutorial extends Phaser.Scene {
 
         showStep();
 
-        if (this.tutorialTimerEvent) {
-            this.tutorialTimerEvent.remove(false);
-        }
-
-        this.tutorialTimerEvent = this.time.addEvent({
-            delay: 6000,
-            loop: true,
-            callback: showStep,
-        });
-
         this.events.once("shutdown", () => {
-            if (this.tutorialTimerEvent) {
-                this.tutorialTimerEvent.remove(false);
-                this.tutorialTimerEvent = null;
-            }
         });
     }
 }

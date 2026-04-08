@@ -36,27 +36,27 @@ class BotController {
 
     // Sem munição: prioriza recarga, mas pode optar por escudo.
     if (botShotsLoaded <= 0) {
-      return Math.random() < 0.7 ? "reload" : "armor";
+      return Math.random() < 0.8 ? "reload" : "armor";
     }
 
     // Nova regra: se o player tem munição, baseia em 40/30/30.
     if (playerShotsLoaded >= 1) {
-      let reloadChance = 30;
+      let reloadChance = 20;
 
       if (botShotsLoaded === 2) {
-        reloadChance = 40;
+        reloadChance = 28;
       } else if (botShotsLoaded === 3) {
         reloadChance = 20;
       } else if (botShotsLoaded === 4) {
-        reloadChance = 10;
+        reloadChance = 8;
       } else if (botShotsLoaded >= 5) {
         // Sem limite máximo: acima de 4, recarga segue possível porém cada vez mais rara.
-        reloadChance = Math.max(2, 10 - (botShotsLoaded - 4) * 2);
+        reloadChance = Math.max(1, 8 - (botShotsLoaded - 4) * 1.5);
       }
 
       const remaining = 100 - reloadChance;
-      const armorChance = remaining * (4 / 7);
-      const shootChance = remaining * (3 / 7);
+      const armorChance = remaining * (3 / 7);
+      const shootChance = remaining * (4 / 7);
 
       if (botShieldActive) {
         return this.weightedPick({ shoot: shootChance, reload: reloadChance });
@@ -73,12 +73,12 @@ class BotController {
 
     if (playerShieldActive) {
       if (roll < 0.45 && !botShieldActive) return "armor";
-      if (roll < 0.8) return "reload";
+      if (roll < 0.65) return "reload";
       return "shoot";
     }
 
-    if (roll < 0.55) return "shoot";
-    if (roll < 0.82) return "reload";
+    if (roll < 0.62) return "shoot";
+    if (roll < 0.80) return "reload";
     return "armor";
   }
 }
