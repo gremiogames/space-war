@@ -1,5 +1,6 @@
 import config from "./config.js";
 import scene0 from "./scene0.js";
+import tutorial from "./tutorial.js";
 import TelaInicial from "./telainicial.js";
 import "./banco.js";
 
@@ -8,6 +9,7 @@ class Game extends Phaser.Game {
     super(config);
 
     this.scene.add("telainicial", TelaInicial);
+    this.scene.add("tutorial", tutorial);
     this.scene.add("scene0", scene0);
     this.scene.start("telainicial");
   }

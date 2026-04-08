@@ -1,0 +1,187 @@
+class Tutorial extends Phaser.Scene {
+    constructor() {
+        super("tutorial");
+        this.backButton = null;
+        this.menuMusic = null;
+        this.tutorialText = null;
+        this.tutorialReloadIcon = null;
+        this.tutorialHeartIcon = null;
+        this.tutorialShootIcon = null;
+        this.tutorialShieldIcon = null;
+        this.tutorialTimerEvent = null;
+        this.tutorialStepIndex = 0;
+        this.tutorialSteps = [];
+    }
+
+    preload() {
+        this.load.image("tutorialReloadButton", "assets/Damage_Bonus.png");
+        this.load.image("tutorialHeart", "assets/HEART 1.png");
+        this.load.image("tutorialShootButton", "assets/Enemy_Destroy_Bonus.png");
+        this.load.image("tutorialShield", "assets/Armor_Bonus.png");
+    }
+
+    create() {
+        const width = this.scale.width;
+        const height = this.scale.height;
+        const pixelFont = '"Press Start 2P", monospace';
+        const textFont = "Arial, sans-serif";
+
+        this.tutorialSteps = [
+            {
+                message:
+                    "- Você e o inimigo tomam decisões simultaneamente a cada rodada.",
+            },
+            {
+                message:
+                    "- Há um curto periodo de tempo para agir, pense rápido!",
+            },
+            {
+                message:
+                    "- Recarregar aumenta sua munição, porém o deixa vulnerável.",
+                icons: ["reload", "heart"],
+            },
+            {
+                message:
+                    "- Use o botão de atirar para atingir seu inimigo, ou use o escudo para se defender.",
+                icons: ["shoot", "shield"],
+            },
+            {
+                message: "- Volte ao menu para iniciar uma partida.",
+            },
+        ];
+
+        this.add
+            .rectangle(width / 2, height / 2, width, height, 0x050505)
+            .setDepth(-2);
+
+        this.add
+            .text(width / 2, 90, "Tutorial", {
+                fontFamily: pixelFont,
+                fontSize: "30px",
+                color: "#ffffff",
+                fontStyle: "bold",
+            })
+            .setOrigin(0.5);
+
+        this.tutorialText = this.add
+            .text(width / 2, height / 2, "", {
+                fontFamily: textFont,
+                fontSize: "26px",
+                color: "#d8d8d8",
+                align: "center",
+                wordWrap: { width: 680 },
+                lineSpacing: 16,
+            })
+            .setOrigin(0.5)
+            .setDepth(5);
+
+        this.tutorialReloadIcon = this.add
+            .image(width / 2 - 34, height / 2 + 82, "tutorialReloadButton")
+            .setDisplaySize(52, 52)
+            .setVisible(false)
+            .setDepth(5);
+
+        this.tutorialHeartIcon = this.add
+            .image(width / 2 + 34, height / 2 + 82, "tutorialHeart")
+            .setDisplaySize(40, 40)
+            .setVisible(false)
+            .setDepth(5);
+
+        this.tutorialShootIcon = this.add
+            .image(width / 2 - 34, height / 2 + 82, "tutorialShootButton")
+            .setDisplaySize(52, 52)
+            .setVisible(false)
+            .setDepth(5);
+
+        this.tutorialShieldIcon = this.add
+            .image(width / 2 + 34, height / 2 + 82, "tutorialShield")
+            .setDisplaySize(52, 52)
+            .setVisible(false)
+            .setDepth(5);
+
+        let backText = null;
+
+        this.backButton = this.add
+            .rectangle(width / 2, height * 0.82, 220, 44, 0x0f0f0f)
+            .setStrokeStyle(2, 0x2a2a2a)
+            .setAlpha(0.58)
+            .setVisible(false)
+            .setInteractive({ useHandCursor: true });
+
+        backText = this.add
+            .text(width / 2, height * 0.82, "Voltar", {
+                fontFamily: pixelFont,
+                fontSize: "14px",
+                fontStyle: "bold",
+                color: "#ededed",
+            })
+            .setOrigin(0.5)
+            .setVisible(false);
+
+        this.backButton.on("pointerover", () => {
+            this.backButton.setFillStyle(0x1b1b1b);
+            this.backButton.setAlpha(0.66);
+            backText.setScale(1.03);
+        });
+
+        this.backButton.on("pointerout", () => {
+            this.backButton.setFillStyle(0x0f0f0f);
+            this.backButton.setAlpha(0.58);
+            backText.setScale(1);
+        });
+
+        this.backButton.on("pointerdown", () => {
+            this.scene.start("telainicial");
+        });
+
+        const showStep = () => {
+            const step = this.tutorialSteps[this.tutorialStepIndex];
+            this.tutorialText.setText(step.message);
+
+            this.tutorialReloadIcon.setVisible(false);
+            this.tutorialHeartIcon.setVisible(false);
+            this.tutorialShootIcon.setVisible(false);
+            this.tutorialShieldIcon.setVisible(false);
+
+            const isLastStep = this.tutorialStepIndex === this.tutorialSteps.length - 1;
+            this.backButton.setVisible(isLastStep);
+
+            if (backText) {
+                backText.setVisible(isLastStep);
+            }
+
+            if (step.icons?.includes("reload")) {
+                this.tutorialReloadIcon.setVisible(true);
+                this.tutorialHeartIcon.setVisible(true);
+            }
+
+            if (step.icons?.includes("shoot")) {
+                this.tutorialShootIcon.setVisible(true);
+                this.tutorialShieldIcon.setVisible(true);
+            }
+
+            this.tutorialStepIndex = (this.tutorialStepIndex + 1) % this.tutorialSteps.length;
+        };
+
+        showStep();
+
+        if (this.tutorialTimerEvent) {
+            this.tutorialTimerEvent.remove(false);
+        }
+
+        this.tutorialTimerEvent = this.time.addEvent({
+            delay: 6000,
+            loop: true,
+            callback: showStep,
+        });
+
+        this.events.once("shutdown", () => {
+            if (this.tutorialTimerEvent) {
+                this.tutorialTimerEvent.remove(false);
+                this.tutorialTimerEvent = null;
+            }
+        });
+    }
+}
+
+export default Tutorial;
