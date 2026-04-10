@@ -89,6 +89,7 @@ class scene0 extends Phaser.Scene {
     this.explosionSfx = null;
     this.laserExplosionSfx = null;
     this.laserBarrierSfx = null;
+    this.losingLifeSfx = null;
     this.gameMusic = null;
     this.returnToMenuEvent = null;
     this.returnToMenuScheduled = false;
@@ -165,6 +166,7 @@ class scene0 extends Phaser.Scene {
     this.load.audio("explosionSfx", "assets/explosao.mp3");
     this.load.audio("laserExplosionSfx", "assets/laserexplosao.mp3");
     this.load.audio("laserBarrierSfx", "assets/laserbarrier.mp3");
+    this.load.audio("losingLifeSfx", "assets/losinglife.mp3");
     this.load.audio("gameMusic", "assets/musicajogo.mp3");
   }
 
@@ -229,6 +231,7 @@ class scene0 extends Phaser.Scene {
     this.explosionSfx = this.sound.add("explosionSfx");
     this.laserExplosionSfx = this.sound.add("laserExplosionSfx");
     this.laserBarrierSfx = this.sound.add("laserBarrierSfx");
+    this.losingLifeSfx = this.sound.add("losingLifeSfx");
     this.menuMusic = this.sound.get("menuMusic");
     if (this.menuMusic && this.menuMusic.isPlaying) {
       this.menuMusic.stop();
@@ -816,6 +819,9 @@ class scene0 extends Phaser.Scene {
     if (this.gameOver) return;
 
     this.player1Lives = Math.max(0, this.player1Lives - amount);
+    if (this.player1Lives > 0 && this.losingLifeSfx) {
+      this.losingLifeSfx.play({ volume: 0.5, rate: 1.3 });
+    }
     this.playDamageFeedback(this.player);
     this.updateLivesDisplay();
 
@@ -828,6 +834,9 @@ class scene0 extends Phaser.Scene {
     if (this.gameOver) return;
 
     this.player2Lives = Math.max(0, this.player2Lives - amount);
+    if (this.player2Lives > 0 && this.losingLifeSfx) {
+      this.losingLifeSfx.play({ volume: 0.5, rate: 1.3 });
+    }
     this.playDamageFeedback(this.player2);
     this.updateLivesDisplay();
 
