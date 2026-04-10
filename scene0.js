@@ -157,10 +157,7 @@ class scene0 extends Phaser.Scene {
     );
 
     this.load.audio("laser", "assets/efeitolaser.mp3");
-    this.load.audio(
-      "fullReload",
-      "assets/reloadcharge.mp3",
-    );
+    this.load.audio("fullReload", "assets/reloadcharge.mp3");
     this.load.audio(
       "shieldSfx",
       "assets/freesound_community-analog-lazer-fx-87122.mp3",
@@ -415,12 +412,17 @@ class scene0 extends Phaser.Scene {
 
     // Mostra apenas o número de munição ao lado direito do botão de recarga.
     this.ammoText = this.add
-      .text(this.buttonReload.x + 52, this.buttonReload.y, `${this.shotsLoaded}`, {
-        fontSize: "28px",
-        fontFamily: this.uiFontFamily,
-        fill: "#00ff00",
-        fontStyle: "bold",
-      })
+      .text(
+        this.buttonReload.x + 52,
+        this.buttonReload.y,
+        `${this.shotsLoaded}`,
+        {
+          fontSize: "28px",
+          fontFamily: this.uiFontFamily,
+          fill: "#00ff00",
+          fontStyle: "bold",
+        },
+      )
       .setOrigin(0, 0.5)
       .setDepth(35);
 
@@ -1437,7 +1439,11 @@ class scene0 extends Phaser.Scene {
       if (this.shieldSfx) {
         this.shieldSfx.play({ volume: 0.45 });
       }
-      this.showShieldWithQuickFade(this.botShield, this.player2.x, this.player2.y + 54);
+      this.showShieldWithQuickFade(
+        this.botShield,
+        this.player2.x,
+        this.player2.y + 54,
+      );
 
       if (this.botShieldTimerEvent) {
         this.botShieldTimerEvent.remove(false);
