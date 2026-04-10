@@ -40,13 +40,14 @@ class scene0 extends Phaser.Scene {
     this.playerShieldOffsetX = 2;
     this.playerShieldOffsetY = 50;
     this.reloadOrbSize = 22;
+    this.botReloadOrbSize = 18;
     this.playerReloadOrbOffsets = [
-      { x: -30, y: -34 },
-      { x: 30, y: -34 },
+      { x: -20, y: -63 },
+      { x: 17, y: -63 },
     ];
     this.botReloadOrbOffsets = [
-      { x: -30, y: 34 },
-      { x: 30, y: 34 },
+      { x: -10, y: 67 },
+      { x: 12, y: 67 },
     ];
     this.playerReloadOrbs = [];
     this.botReloadOrbs = [];
@@ -956,17 +957,20 @@ class scene0 extends Phaser.Scene {
   }
 
   createReloadEffects() {
-    const createOrb = () =>
+    const createOrb = (size = this.reloadOrbSize) =>
       this.add
         .sprite(0, 0, "sheet", "expb_02")
-        .setDisplaySize(this.reloadOrbSize, this.reloadOrbSize)
+        .setDisplaySize(size, size)
         .setVisible(false)
         .setAlpha(0)
         .setScale(0.8)
         .setDepth(35);
 
     this.playerReloadOrbs = [createOrb(), createOrb()];
-    this.botReloadOrbs = [createOrb(), createOrb()];
+    this.botReloadOrbs = [
+      createOrb(this.botReloadOrbSize),
+      createOrb(this.botReloadOrbSize),
+    ];
 
     this.updateReloadEffectPositions();
     this.events.once("shutdown", () => {
