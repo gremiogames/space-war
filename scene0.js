@@ -86,6 +86,9 @@ class scene0 extends Phaser.Scene {
     this.botAmmoText = null;
     this.fullReloadSfx = null;
     this.shieldSfx = null;
+    this.explosionSfx = null;
+    this.laserExplosionSfx = null;
+    this.laserBarrierSfx = null;
     this.gameMusic = null;
     this.returnToMenuEvent = null;
     this.returnToMenuScheduled = false;
@@ -156,12 +159,15 @@ class scene0 extends Phaser.Scene {
     this.load.audio("laser", "assets/efeitolaser.mp3");
     this.load.audio(
       "fullReload",
-      "assets/melbeebelbee-gun-full-reload-384507.mp3",
+      "assets/reloadcharge.mp3",
     );
     this.load.audio(
       "shieldSfx",
       "assets/freesound_community-analog-lazer-fx-87122.mp3",
     );
+    this.load.audio("explosionSfx", "assets/explosao.mp3");
+    this.load.audio("laserExplosionSfx", "assets/laserexplosao.mp3");
+    this.load.audio("laserBarrierSfx", "assets/laserbarrier.mp3");
     this.load.audio("gameMusic", "assets/musicajogo.mp3");
   }
 
@@ -223,6 +229,13 @@ class scene0 extends Phaser.Scene {
     this.laser = this.sound.add("laser");
     this.fullReloadSfx = this.sound.add("fullReload");
     this.shieldSfx = this.sound.add("shieldSfx");
+    this.explosionSfx = this.sound.add("explosionSfx");
+    this.laserExplosionSfx = this.sound.add("laserExplosionSfx");
+    this.laserBarrierSfx = this.sound.add("laserBarrierSfx");
+    this.menuMusic = this.sound.get("menuMusic");
+    if (this.menuMusic && this.menuMusic.isPlaying) {
+      this.menuMusic.stop();
+    }
     this.gameMusic = this.sound.add("gameMusic", {
       loop: true,
       volume: 0.35,
@@ -400,21 +413,20 @@ class scene0 extends Phaser.Scene {
       })
       .setOrigin(0.5, 0.5);
 
-    // Texto contador de munição no canto superior direito
+    // Mostra apenas o número de munição ao lado direito do botão de recarga.
     this.ammoText = this.add
-      .text(this.scale.width - 30, 30, `Munição: ${this.shotsLoaded}`, {
-        fontSize: "24px",
+      .text(this.buttonReload.x + 52, this.buttonReload.y, `${this.shotsLoaded}`, {
+        fontSize: "28px",
         fontFamily: this.uiFontFamily,
-        fill: "#ffff00",
+        fill: "#00ff00",
         fontStyle: "bold",
-        backgroundColor: "#000000",
-        padding: { x: 15, y: 10 },
       })
-      .setOrigin(1, 0);
+      .setOrigin(0, 0.5)
+      .setDepth(35);
 
     // HUD de teste para visualizar a munição atual do bot.
     this.botAmmoText = this.add
-      .text(24, 56, `Player 2 munição: ${this.botShotsLoaded}`, {
+      .text(14, 56, `Munição: ${this.botShotsLoaded}`, {
         fontSize: "12px",
         fontFamily: this.uiFontFamily,
         fill: "#ffcc66",
@@ -702,6 +714,9 @@ class scene0 extends Phaser.Scene {
     tiro.setVisible(false);
 
     if (this.botShieldActive) {
+      if (this.laserBarrierSfx) {
+        this.laserBarrierSfx.play({ volume: 0.3 });
+      }
       return;
     }
 
@@ -720,6 +735,9 @@ class scene0 extends Phaser.Scene {
     botTiro.setVisible(false);
 
     if (this.shieldActive) {
+      if (this.laserBarrierSfx) {
+        this.laserBarrierSfx.play({ volume: 0.3 });
+      }
       return;
     }
 
@@ -728,6 +746,10 @@ class scene0 extends Phaser.Scene {
 
   onShotsClash(tiro, botTiro) {
     if (this.gameOver || !tiro.visible || !botTiro.visible) return;
+
+    if (this.laserExplosionSfx) {
+      this.laserExplosionSfx.play({ volume: 0.55 });
+    }
 
     const clashX = (tiro.x + botTiro.x) * 0.5;
     const clashY = (tiro.y + botTiro.y) * 0.5;
@@ -816,6 +838,10 @@ class scene0 extends Phaser.Scene {
     this.gameOver = true;
     this.roundActive = false;
 
+    if (this.explosionSfx) {
+      this.explosionSfx.play({ volume: 0.65 });
+    }
+
     if (this.tiroTween) {
       this.tiroTween.stop();
       this.tiroTween = null;
@@ -886,6 +912,10 @@ class scene0 extends Phaser.Scene {
     this.gameOver = true;
     this.roundActive = false;
 
+    if (this.explosionSfx) {
+      this.explosionSfx.play({ volume: 0.65 });
+    }
+
     if (this.tiroTween) {
       this.tiroTween.stop();
       this.tiroTween = null;
@@ -953,7 +983,7 @@ class scene0 extends Phaser.Scene {
   }
 
   updateAmmoDisplay() {
-    this.ammoText.setText(`Munição: ${this.shotsLoaded}`);
+    this.ammoText.setText(`${this.shotsLoaded}`);
   }
 
   createReloadEffects() {
@@ -1052,6 +1082,48 @@ class scene0 extends Phaser.Scene {
   playBotReloadEffect() {
     this.updateReloadEffectPositions();
     this.playReloadEffect(this.botReloadOrbs);
+  }
+
+  showShieldWithQuickFade(shield, x, y) {
+    if (!shield) return;
+
+    this.tweens.killTweensOf(shield);
+    shield.setPosition(x, y).setAlpha(0).setVisible(true);
+
+    this.tweens.add({
+      targets: shield,
+      alpha: 1,
+      duration: 120,
+      ease: "Linear",
+    });
+  }
+
+  playShotFlowFromOrbs(orbs, targetX, targetY) {
+    if (!orbs || orbs.length === 0) return;
+
+    orbs.forEach((orb) => {
+      if (!orb) return;
+
+      const flowShot = this.add
+        .image(orb.x, orb.y, "sheet", "plasma_1")
+        .setDisplaySize(12, 18)
+        .setAlpha(0.95)
+        .setDepth(orb.depth + 1);
+
+      this.tweens.add({
+        targets: flowShot,
+        x: targetX,
+        y: targetY,
+        alpha: 0.2,
+        duration: 90,
+        ease: "Linear",
+        onComplete: () => {
+          if (flowShot && flowShot.active) {
+            flowShot.destroy();
+          }
+        },
+      });
+    });
   }
 
   showEndMessageWithFade(message, color = "#00ff88") {
@@ -1154,7 +1226,7 @@ class scene0 extends Phaser.Scene {
   }
 
   updateBotAmmoDisplay() {
-    this.botAmmoText.setText(`Player 2 munição: ${this.botShotsLoaded}`);
+    this.botAmmoText.setText(`Munição: ${this.botShotsLoaded}`);
   }
 
   createLivesDisplay() {
@@ -1198,7 +1270,7 @@ class scene0 extends Phaser.Scene {
     });
 
     if (this.botAmmoText) {
-      this.botAmmoText.setPosition(p2StartX, p2Y + 22);
+      this.botAmmoText.setPosition(p2StartX - 10, p2Y + 22);
     }
   }
 
@@ -1240,6 +1312,13 @@ class scene0 extends Phaser.Scene {
     if (this.selectedAction === "shoot") {
       // So permite tiro se houver ao menos uma carga acumulada.
       if (this.shotsLoaded > 0 && !this.tiro.visible) {
+        this.updateReloadEffectPositions();
+        this.playShotFlowFromOrbs(
+          this.playerReloadOrbs,
+          this.player.x,
+          this.player.y - 80,
+        );
+
         // Consome 1 carga a cada disparo.
         this.shotsLoaded -= 1;
         this.updateAmmoDisplay();
@@ -1280,7 +1359,7 @@ class scene0 extends Phaser.Scene {
       this.buttonReload.setAlpha(0.6);
       this.playPlayerReloadEffect();
       if (this.fullReloadSfx) {
-        this.fullReloadSfx.play({ volume: 0.45 });
+        this.fullReloadSfx.play({ volume: 0.45, rate: 1.5 });
       }
     } else if (this.selectedAction === "armor") {
       // Ativa o escudo
@@ -1288,13 +1367,11 @@ class scene0 extends Phaser.Scene {
       if (this.shieldSfx) {
         this.shieldSfx.play({ volume: 0.45 });
       }
-      this.shield
-        .setPosition(
-          this.player.x - this.playerShieldOffsetX,
-          this.player.y - this.playerShieldOffsetY,
-        )
-        .setAlpha(1)
-        .setVisible(true);
+      this.showShieldWithQuickFade(
+        this.shield,
+        this.player.x - this.playerShieldOffsetX,
+        this.player.y - this.playerShieldOffsetY,
+      );
 
       // Evita múltiplos timers concorrentes do escudo.
       if (this.shieldTimerEvent) {
@@ -1315,6 +1392,13 @@ class scene0 extends Phaser.Scene {
 
     if (this.botSelectedAction === "shoot") {
       if (this.botShotsLoaded > 0 && !this.botTiro.visible) {
+        this.updateReloadEffectPositions();
+        this.playShotFlowFromOrbs(
+          this.botReloadOrbs,
+          this.player2.x,
+          this.player2.y + 80,
+        );
+
         this.botShotsLoaded -= 1;
         this.updateBotAmmoDisplay();
 
@@ -1346,17 +1430,14 @@ class scene0 extends Phaser.Scene {
       this.updateBotAmmoDisplay();
       this.playBotReloadEffect();
       if (this.fullReloadSfx) {
-        this.fullReloadSfx.play({ volume: 0.45 });
+        this.fullReloadSfx.play({ volume: 0.45, rate: 1.5 });
       }
     } else if (this.botSelectedAction === "armor") {
       this.botShieldActive = true;
       if (this.shieldSfx) {
         this.shieldSfx.play({ volume: 0.45 });
       }
-      this.botShield
-        .setPosition(this.player2.x, this.player2.y + 54)
-        .setAlpha(1)
-        .setVisible(true);
+      this.showShieldWithQuickFade(this.botShield, this.player2.x, this.player2.y + 54);
 
       if (this.botShieldTimerEvent) {
         this.botShieldTimerEvent.remove(false);

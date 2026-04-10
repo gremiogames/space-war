@@ -19,6 +19,7 @@ class Tutorial extends Phaser.Scene {
         this.load.image("tutorialHeart", "assets/HEART 1.png");
         this.load.image("tutorialShootButton", "assets/Enemy_Destroy_Bonus.png");
         this.load.image("tutorialShield", "assets/Armor_Bonus.png");
+        this.load.audio("menuMusic", "assets/musicamenu.mp3");
     }
 
     create() {
@@ -26,6 +27,17 @@ class Tutorial extends Phaser.Scene {
         const height = this.scale.height;
         const pixelFont = '"Press Start 2P", monospace';
         const textFont = "Arial, sans-serif";
+
+        this.menuMusic =
+            this.sound.get("menuMusic") ||
+            this.sound.add("menuMusic", {
+                loop: true,
+                volume: 0.35,
+            });
+
+        if (!this.menuMusic.isPlaying) {
+            this.menuMusic.play();
+        }
 
         this.tutorialSteps = [
             {
@@ -196,9 +208,6 @@ class Tutorial extends Phaser.Scene {
         };
 
         showStep();
-
-        this.events.once("shutdown", () => {
-        });
     }
 }
 
