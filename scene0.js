@@ -36,6 +36,20 @@ class scene0 extends Phaser.Scene {
     this.uiFontFamily = "Trebuchet MS, sans-serif";
     this.countdownNumberSize = "64px";
     this.countdownMessageSize = "48px";
+    this.playerShieldSize = 104;
+    this.playerShieldOffsetX = 2;
+    this.playerShieldOffsetY = 50;
+    this.reloadOrbSize = 22;
+    this.playerReloadOrbOffsets = [
+      { x: -30, y: -34 },
+      { x: 30, y: -34 },
+    ];
+    this.botReloadOrbOffsets = [
+      { x: -30, y: 34 },
+      { x: 30, y: 34 },
+    ];
+    this.playerReloadOrbs = [];
+    this.botReloadOrbs = [];
 
     // Sistema de contagem regressiva
     this.roundActive = false;
@@ -154,7 +168,7 @@ class scene0 extends Phaser.Scene {
     const x = this.scale.width / 2;
     const y = this.scale.height - 75;
     const yOpposite = 75;
-    const playerScale = 1.85;
+    const playerScale = 1.55;
     const botScale = 1.25;
 
     // Reinicia estado da partida ao entrar na cena novamente via menu.
@@ -172,6 +186,7 @@ class scene0 extends Phaser.Scene {
     this.botSelectedAction = null;
     this.shieldActive = false;
     this.botShieldActive = false;
+    this.__coinsRewardGranted = false;
 
     if (this.shieldTimerEvent) {
       this.shieldTimerEvent.remove(false);
@@ -360,8 +375,12 @@ class scene0 extends Phaser.Scene {
 
     // Escudo inicia escondido sobre o player.
     this.shield = this.add
-      .image(this.player.x, this.player.y - 35, "shield")
-      .setDisplaySize(110, 110)
+      .image(
+        this.player.x - this.playerShieldOffsetX,
+        this.player.y - this.playerShieldOffsetY,
+        "shield",
+      )
+      .setDisplaySize(this.playerShieldSize, this.playerShieldSize)
       .setVisible(false);
 
     // Escudo do bot inicia escondido sobre o player2.
@@ -417,6 +436,7 @@ class scene0 extends Phaser.Scene {
       .setVisible(false);
 
     this.createLivesDisplay();
+    this.createReloadEffects();
 
     this.button.on("pointerdown", () => {
       // Impede múltiplas ações na mesma rodada
@@ -511,6 +531,12 @@ class scene0 extends Phaser.Scene {
     }
     this.botShieldActive = false;
     this.botShield.setAlpha(1).setVisible(false);
+    this.updateReloadEffectPositions();
+    [...this.playerReloadOrbs, ...this.botReloadOrbs].forEach((orb) => {
+      if (orb) {
+        orb.setVisible(false).setAlpha(0).setScale(0.8);
+      }
+    });
 
     // Reseta o estado para permitir nova ação
     this.actionExecuted = false;
@@ -824,7 +850,7 @@ class scene0 extends Phaser.Scene {
           "sheet",
           "exp1_01",
         )
-        .setScale(2.2)
+        .setScale(2.6)
         .setDepth(this.player2.depth + 2);
 
       this.player2.setVisible(false);
@@ -894,7 +920,7 @@ class scene0 extends Phaser.Scene {
           "sheet",
           "exp1_01",
         )
-        .setScale(2.2)
+        .setScale(2.6)
         .setDepth(this.player.depth + 2);
 
       this.player.setVisible(false);
@@ -927,6 +953,101 @@ class scene0 extends Phaser.Scene {
 
   updateAmmoDisplay() {
     this.ammoText.setText(`Munição: ${this.shotsLoaded}`);
+  }
+
+  createReloadEffects() {
+    const createOrb = () =>
+      this.add
+        .sprite(0, 0, "sheet", "expb_02")
+        .setDisplaySize(this.reloadOrbSize, this.reloadOrbSize)
+        .setVisible(false)
+        .setAlpha(0)
+        .setScale(0.8)
+        .setDepth(35);
+
+    this.playerReloadOrbs = [createOrb(), createOrb()];
+    this.botReloadOrbs = [createOrb(), createOrb()];
+
+    this.updateReloadEffectPositions();
+    this.events.once("shutdown", () => {
+      [...this.playerReloadOrbs, ...this.botReloadOrbs].forEach((orb) => {
+        if (orb && orb.active) {
+          orb.destroy();
+        }
+      });
+      this.playerReloadOrbs = [];
+      this.botReloadOrbs = [];
+    });
+  }
+
+  getReloadEffectPositions(ship, offsets = []) {
+    if (!ship || offsets.length === 0) return [];
+
+    const baseX = ship.x;
+    const baseY = ship.y;
+
+    return offsets.map((offset) => ({
+      x: baseX + offset.x,
+      y: baseY + offset.y,
+    }));
+  }
+
+  updateReloadEffectPositions() {
+    if (this.player && this.playerReloadOrbs.length === 2) {
+      const positions = this.getReloadEffectPositions(
+        this.player,
+        this.playerReloadOrbOffsets,
+      );
+      this.playerReloadOrbs.forEach((orb, index) => {
+        orb.setPosition(positions[index].x, positions[index].y);
+        orb.setDepth(this.player.depth + 2);
+      });
+    }
+
+    if (this.player2 && this.botReloadOrbs.length === 2) {
+      const positions = this.getReloadEffectPositions(
+        this.player2,
+        this.botReloadOrbOffsets,
+      );
+      this.botReloadOrbs.forEach((orb, index) => {
+        orb.setPosition(positions[index].x, positions[index].y);
+        orb.setDepth(this.player2.depth + 2);
+      });
+    }
+  }
+
+  playReloadEffect(orbs) {
+    if (!orbs || orbs.length === 0) return;
+
+    orbs.forEach((orb) => {
+      if (!orb) return;
+
+      this.tweens.killTweensOf(orb);
+      orb.setVisible(true).setAlpha(0).setScale(0.8);
+
+      this.tweens.add({
+        targets: orb,
+        alpha: { from: 0, to: 1 },
+        scale: { from: 0.75, to: 1.35 },
+        duration: 160,
+        ease: "Sine.easeOut",
+        yoyo: true,
+        hold: 90,
+        onComplete: () => {
+          orb.setVisible(false).setAlpha(0).setScale(0.75);
+        },
+      });
+    });
+  }
+
+  playPlayerReloadEffect() {
+    this.updateReloadEffectPositions();
+    this.playReloadEffect(this.playerReloadOrbs);
+  }
+
+  playBotReloadEffect() {
+    this.updateReloadEffectPositions();
+    this.playReloadEffect(this.botReloadOrbs);
   }
 
   showEndMessageWithFade(message, color = "#00ff88") {
@@ -1153,6 +1274,7 @@ class scene0 extends Phaser.Scene {
       this.updateAmmoDisplay();
       this.button.setAlpha(1);
       this.buttonReload.setAlpha(0.6);
+      this.playPlayerReloadEffect();
       if (this.fullReloadSfx) {
         this.fullReloadSfx.play({ volume: 0.45 });
       }
@@ -1163,7 +1285,10 @@ class scene0 extends Phaser.Scene {
         this.shieldSfx.play({ volume: 0.45 });
       }
       this.shield
-        .setPosition(this.player.x, this.player.y - 35)
+        .setPosition(
+          this.player.x - this.playerShieldOffsetX,
+          this.player.y - this.playerShieldOffsetY,
+        )
         .setAlpha(1)
         .setVisible(true);
 
@@ -1215,6 +1340,7 @@ class scene0 extends Phaser.Scene {
     } else if (this.botSelectedAction === "reload") {
       this.botShotsLoaded += 1;
       this.updateBotAmmoDisplay();
+      this.playBotReloadEffect();
       if (this.fullReloadSfx) {
         this.fullReloadSfx.play({ volume: 0.45 });
       }
@@ -1242,12 +1368,17 @@ class scene0 extends Phaser.Scene {
 
   update() {
     if (this.shield && this.player) {
-      this.shield.setPosition(this.player.x, this.player.y - 35);
+      this.shield.setPosition(
+        this.player.x - this.playerShieldOffsetX,
+        this.player.y - this.playerShieldOffsetY,
+      );
     }
 
     if (this.botShield && this.player2) {
       this.botShield.setPosition(this.player2.x, this.player2.y + 54);
     }
+
+    this.updateReloadEffectPositions();
 
     this.positionLivesDisplay();
 
