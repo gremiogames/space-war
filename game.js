@@ -3,6 +3,7 @@ import scene0 from "./scene0.js";
 import tutorial from "./tutorial.js";
 import TelaInicial from "./telainicial.js";
 import "./banco.js";
+import "./loja.js";
 
 class Game extends Phaser.Game {
   constructor() {

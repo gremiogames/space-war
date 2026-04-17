@@ -93,6 +93,47 @@ class scene0 extends Phaser.Scene {
     this.gameMusic = null;
     this.returnToMenuEvent = null;
     this.returnToMenuScheduled = false;
+    this.roundCountdownEvent = null;
+    this.onShipsUpdated = null;
+    this.rewardText = null;
+    this.rewardCoinIcon = null;
+  }
+
+  applyStoreShipToPlayer() {
+    if (!this.player || typeof window === "undefined") return;
+
+    const equippedShip = window.LojaNaves?.getEquippedShip?.();
+    if (!equippedShip) return;
+    if (!this.textures.exists(equippedShip.textureKey)) return;
+
+    if (equippedShip.frameRect && equippedShip.frameKey) {
+      const texture = this.textures.get(equippedShip.textureKey);
+      if (texture && !texture.has(equippedShip.frameKey)) {
+        texture.add(
+          equippedShip.frameKey,
+          0,
+          equippedShip.frameRect.x,
+          equippedShip.frameRect.y,
+          equippedShip.frameRect.w,
+          equippedShip.frameRect.h,
+        );
+      }
+    }
+
+    const frame = equippedShip.frameKey || 0;
+    this.player.setTexture(equippedShip.textureKey, frame);
+
+    if (equippedShip.playerScale) {
+      this.player.setScale(equippedShip.playerScale);
+    }
+
+    this.player.setFlipY(Boolean(equippedShip.flipYForPlayer1));
+
+    if (equippedShip.tint && equippedShip.tint !== 0xffffff) {
+      this.player.setTint(equippedShip.tint);
+    } else {
+      this.player.clearTint();
+    }
   }
 
   getRoundDurationSeconds() {
@@ -247,12 +288,52 @@ class scene0 extends Phaser.Scene {
 
     this.returnToMenuScheduled = false;
     this.returnToMenuEvent = null;
+    this.rewardText = null;
+    this.rewardCoinIcon = null;
 
     this.events.once("shutdown", () => {
+      if (this.time) {
+        this.time.removeAllEvents();
+      }
+
+      if (this.tweens) {
+        this.tweens.killAll();
+      }
+
+      if (this.roundCountdownEvent) {
+        this.roundCountdownEvent.remove(false);
+        this.roundCountdownEvent = null;
+      }
+
+      if (this.shieldTimerEvent) {
+        this.shieldTimerEvent.remove(false);
+        this.shieldTimerEvent = null;
+      }
+
+      if (this.botShieldTimerEvent) {
+        this.botShieldTimerEvent.remove(false);
+        this.botShieldTimerEvent = null;
+      }
+
       if (this.returnToMenuEvent) {
         this.returnToMenuEvent.remove(false);
         this.returnToMenuEvent = null;
       }
+
+      if (typeof window !== "undefined" && this.onShipsUpdated) {
+        window.removeEventListener("space-war-ships-updated", this.onShipsUpdated);
+        this.onShipsUpdated = null;
+      }
+
+      if (this.rewardText && this.rewardText.active) {
+        this.rewardText.destroy();
+      }
+      this.rewardText = null;
+
+      if (this.rewardCoinIcon && this.rewardCoinIcon.active) {
+        this.rewardCoinIcon.destroy();
+      }
+      this.rewardCoinIcon = null;
 
       if (this.gameMusic && this.gameMusic.isPlaying) {
         this.gameMusic.stop();
@@ -274,6 +355,17 @@ class scene0 extends Phaser.Scene {
       .setImmovable(true);
 
     this.player2.body.setAllowGravity(false);
+    this.applyStoreShipToPlayer();
+
+    if (typeof window !== "undefined") {
+      if (!this.onShipsUpdated) {
+        this.onShipsUpdated = () => {
+          if (!this.scene || !this.scene.isActive()) return;
+          this.applyStoreShipToPlayer();
+        };
+        window.addEventListener("space-war-ships-updated", this.onShipsUpdated);
+      }
+    }
 
     const sheetTexture = this.textures.get("sheet");
     if (!sheetTexture.has("exp1_01")) {
@@ -366,8 +458,11 @@ class scene0 extends Phaser.Scene {
     // Arma inicia sem municao e pode acumular recargas.
     this.shotsLoaded = 0;
 
-    // Registra o frame plasma_1 dentro da textura "sheet".
-    this.textures.get("sheet").add("plasma_1", 0, 30, 2, 6, 21);
+    // Registra o frame plasma_1 dentro da textura "sheet" apenas uma vez.
+    const sheetForProjectiles = this.textures.get("sheet");
+    if (sheetForProjectiles && !sheetForProjectiles.has("plasma_1")) {
+      sheetForProjectiles.add("plasma_1", 0, 30, 2, 6, 21);
+    }
 
     // Tiro inicia escondido e aparece ao clicar no botao.
     this.tiro = this.physics.add
@@ -578,23 +673,40 @@ class scene0 extends Phaser.Scene {
     this.countdownText.setFontSize(this.countdownNumberSize);
 
     // Atualiza a contagem a cada segundo
-    const interval = setInterval(() => {
-      remainingMs -= 1000;
-      if (remainingMs <= 0) return;
+    if (this.roundCountdownEvent) {
+      this.roundCountdownEvent.remove(false);
+      this.roundCountdownEvent = null;
+    }
 
-      remainingTime = Math.max(1, Math.floor(remainingMs / 1000));
-      this.countdownText.setText(remainingTime);
+    this.roundCountdownEvent = this.time.addEvent({
+      delay: 1000,
+      loop: true,
+      callback: () => {
+        if (this.gameOver || !this.scene.isActive()) return;
 
-      // Muda cor durante a contagem
-      if (remainingTime === 2) {
-        this.countdownText.setFill("#ff8800");
-      } else if (remainingTime === 1) {
-        this.countdownText.setFill("#ff0000");
-      }
-    }, 1000);
+        remainingMs -= 1000;
+        if (remainingMs <= 0) return;
+
+        remainingTime = Math.max(1, Math.floor(remainingMs / 1000));
+        this.countdownText.setText(remainingTime);
+
+        // Muda cor durante a contagem
+        if (remainingTime === 2) {
+          this.countdownText.setFill("#ff8800");
+        } else if (remainingTime === 1) {
+          this.countdownText.setFill("#ff0000");
+        }
+      },
+    });
 
     this.time.delayedCall(totalRoundMs, () => {
-      clearInterval(interval);
+      if (!this.scene || !this.scene.isActive() || this.gameOver) return;
+
+      if (this.roundCountdownEvent) {
+        this.roundCountdownEvent.remove(false);
+        this.roundCountdownEvent = null;
+      }
+
       this.roundActive = false;
       this.countdownText.setText("Ação!");
       this.countdownText.setFill("#ff0000");
@@ -607,6 +719,8 @@ class scene0 extends Phaser.Scene {
 
       // Aguarda 1,5 segundo com "Ação!" exibido.
       this.time.delayedCall(1500, () => {
+        if (!this.scene || !this.scene.isActive() || this.gameOver) return;
+
         // Intervalo vazio de meio segundo antes da preparação.
         this.countdownText.setText("");
 
@@ -639,6 +753,7 @@ class scene0 extends Phaser.Scene {
         }
 
         this.time.delayedCall(500, () => {
+          if (!this.scene || !this.scene.isActive() || this.gameOver) return;
           if (this.gameOver) return;
 
           // Mostra mensagem de preparação antes da próxima rodada.
@@ -678,11 +793,14 @@ class scene0 extends Phaser.Scene {
 
     // Após 3 segundos, executa a ação
     this.time.delayedCall(3000, () => {
+      if (!this.scene || !this.scene.isActive() || this.gameOver) return;
+
       this.revealText.setVisible(false);
       this.executeRoundActions();
 
       // Aguarda 500ms e inicia nova rodada
       this.time.delayedCall(500, () => {
+        if (!this.scene || !this.scene.isActive() || this.gameOver) return;
         this.startRound();
       });
     });
@@ -787,7 +905,8 @@ class scene0 extends Phaser.Scene {
       });
 
       this.time.delayedCall(650, () => {
-        if (clashExplosion.active) {
+        if (!this.scene || !this.scene.isActive()) return;
+        if (clashExplosion && clashExplosion.active) {
           clashExplosion.destroy();
         }
       });
@@ -799,6 +918,11 @@ class scene0 extends Phaser.Scene {
 
     this.tweens.killTweensOf(target);
     target.setAlpha(1);
+    
+    // Guardar o tint original antes de mudá-lo
+    const originalTint = target._tintTopLeft;
+    const hadTint = target.isTinted;
+    
     target.setTint(0xff6666);
 
     this.tweens.add({
@@ -809,7 +933,12 @@ class scene0 extends Phaser.Scene {
       repeat: 1,
       ease: "Linear",
       onComplete: () => {
-        target.clearTint();
+        // Restaurar o tint original se a nave tinha tint
+        if (hadTint && originalTint) {
+          target.setTint(originalTint);
+        } else {
+          target.clearTint();
+        }
         target.setAlpha(1);
       },
     });
@@ -899,7 +1028,8 @@ class scene0 extends Phaser.Scene {
       });
 
       this.time.delayedCall(900, () => {
-        if (explosion.active) {
+        if (!this.scene || !this.scene.isActive()) return;
+        if (explosion && explosion.active) {
           explosion.destroy();
           showVictory();
         }
@@ -973,7 +1103,8 @@ class scene0 extends Phaser.Scene {
       });
 
       this.time.delayedCall(900, () => {
-        if (explosion.active) {
+        if (!this.scene || !this.scene.isActive()) return;
+        if (explosion && explosion.active) {
           explosion.destroy();
           showDefeat();
         }
@@ -994,6 +1125,7 @@ class scene0 extends Phaser.Scene {
   }
 
   updateAmmoDisplay() {
+    if (!this.ammoText || !this.ammoText.active) return;
     this.ammoText.setText(`${this.shotsLoaded}`);
   }
 
@@ -1044,6 +1176,7 @@ class scene0 extends Phaser.Scene {
         this.playerReloadOrbOffsets,
       );
       this.playerReloadOrbs.forEach((orb, index) => {
+        if (!orb || !orb.active || !positions[index]) return;
         orb.setPosition(positions[index].x, positions[index].y);
         orb.setDepth(this.player.depth + 2);
       });
@@ -1055,6 +1188,7 @@ class scene0 extends Phaser.Scene {
         this.botReloadOrbOffsets,
       );
       this.botReloadOrbs.forEach((orb, index) => {
+        if (!orb || !orb.active || !positions[index]) return;
         orb.setPosition(positions[index].x, positions[index].y);
         orb.setDepth(this.player2.depth + 2);
       });
@@ -1138,6 +1272,8 @@ class scene0 extends Phaser.Scene {
   }
 
   showEndMessageWithFade(message, color = "#00ff88") {
+    if (!this.victoryText || !this.victoryText.active) return;
+
     this.tweens.killTweensOf(this.victoryText);
     this.victoryText
       .setText(message)
@@ -1157,7 +1293,7 @@ class scene0 extends Phaser.Scene {
     // Exibir ganho de moedas embaixo da mensagem
     const rewardAmount = window.BancoMoedas?.getLastRewardAmount?.() || 0;
 
-    if (!this.rewardText) {
+    if (!this.rewardText || !this.rewardText.active) {
       this.rewardText = this.add
         .text(this.cameras.main.centerX, this.cameras.main.centerY + 80, "", {
           fontFamily: '"Press Start 2P", monospace',
@@ -1185,7 +1321,7 @@ class scene0 extends Phaser.Scene {
       });
 
       // Adicionar ícone de moeda pequeno se existir
-      if (!this.rewardCoinIcon) {
+      if (this.textures.exists("coinIcon") && (!this.rewardCoinIcon || !this.rewardCoinIcon.active)) {
         this.rewardCoinIcon = this.add
           .image(
             this.cameras.main.centerX + 90,
@@ -1219,7 +1355,10 @@ class scene0 extends Phaser.Scene {
 
     this.returnToMenuScheduled = true;
     this.returnToMenuEvent = this.time.delayedCall(delayMs, () => {
+      if (!this.scene || !this.scene.isActive()) return;
+
       const goToMenu = () => {
+        if (!this.scene || !this.scene.isActive()) return;
         if (this.gameMusic && this.gameMusic.isPlaying) {
           this.gameMusic.stop();
         }
@@ -1237,6 +1376,7 @@ class scene0 extends Phaser.Scene {
   }
 
   updateBotAmmoDisplay() {
+    if (!this.botAmmoText || !this.botAmmoText.active) return;
     this.botAmmoText.setText(`Munição: ${this.botShotsLoaded}`);
   }
 
@@ -1296,6 +1436,9 @@ class scene0 extends Phaser.Scene {
   }
 
   enableAllButtons() {
+    if (!this.button || !this.buttonReload || !this.buttonArmor) return;
+    if (!this.button.active || !this.buttonReload.active || !this.buttonArmor.active) return;
+
     this.button.setInteractive();
     this.buttonReload.setInteractive();
     this.buttonArmor.setInteractive();
@@ -1317,6 +1460,8 @@ class scene0 extends Phaser.Scene {
   }
 
   executePlayerAction() {
+    if (!this.player || !this.player.active || !this.tiro || !this.tiro.active) return;
+
     // Executa apenas a ação selecionada
     if (!this.selectedAction) return;
 
@@ -1391,6 +1536,7 @@ class scene0 extends Phaser.Scene {
 
       // Desativa o escudo após 2,5 segundos
       this.shieldTimerEvent = this.time.delayedCall(2500, () => {
+        if (!this.scene || !this.scene.isActive() || this.gameOver) return;
         this.shieldActive = false;
         this.shield.setVisible(false);
         this.shieldTimerEvent = null;
@@ -1399,6 +1545,8 @@ class scene0 extends Phaser.Scene {
   }
 
   executeBotAction() {
+    if (!this.player2 || !this.player2.active || !this.botTiro || !this.botTiro.active) return;
+
     if (!this.botSelectedAction) return;
 
     if (this.botSelectedAction === "shoot") {
@@ -1459,6 +1607,7 @@ class scene0 extends Phaser.Scene {
       }
 
       this.botShieldTimerEvent = this.time.delayedCall(2500, () => {
+        if (!this.scene || !this.scene.isActive() || this.gameOver) return;
         this.botShieldActive = false;
         this.botShield.setVisible(false);
         this.botShieldTimerEvent = null;
@@ -1467,6 +1616,8 @@ class scene0 extends Phaser.Scene {
   }
 
   update() {
+    if (!this.scene || !this.scene.isActive()) return;
+
     if (this.shield && this.player) {
       this.shield.setPosition(
         this.player.x - this.playerShieldOffsetX,

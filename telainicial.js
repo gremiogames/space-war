@@ -6,13 +6,11 @@ class TelaInicial extends Phaser.Scene {
     this.playOnlineButton = null;
     this.statusText = null;
     this.menuMusic = null;
-    this.buttonSfx = null;
   }
 
   preload() {
     this.load.image("menuBackground", "assets/telamenu2.png");
     this.load.audio("menuMusic", "assets/musicamenu.mp3");
-    this.load.audio("buttonSfx", "assets/botaosound.mp3");
   }
 
   create() {
@@ -36,11 +34,11 @@ class TelaInicial extends Phaser.Scene {
       this.menuMusic.play();
     }
 
-    this.buttonSfx =
-      this.sound.get("buttonSfx") ||
-      this.sound.add("buttonSfx", {
-        volume: 0.55,
-      });
+    this.events.once("shutdown", () => {
+      if (this.menuMusic && this.menuMusic.isPlaying) {
+        this.menuMusic.stop();
+      }
+    });
 
     this.tutorialButton = this.createButton({
       x: width / 2,
@@ -49,6 +47,9 @@ class TelaInicial extends Phaser.Scene {
       fillColor: 0x0f0f0f,
       hoverColor: 0x1b1b1b,
       onClick: () => {
+        if (this.menuMusic && this.menuMusic.isPlaying) {
+          this.menuMusic.stop();
+        }
         this.scene.start("tutorial");
       },
     });
@@ -107,23 +108,35 @@ class TelaInicial extends Phaser.Scene {
       })
       .setOrigin(0.5);
 
-    background.on("pointerover", () => {
+    const onPointerOver = () => {
+      if (!background.active) return;
       background.setFillStyle(hoverColor);
       background.setAlpha(0.66);
-      text.setScale(1.03);
-    });
+      if (text && text.active) text.setScale(1.03);
+    };
 
-    background.on("pointerout", () => {
+    const onPointerOut = () => {
+      if (!background.active) return;
       background.setFillStyle(fillColor);
       background.setAlpha(0.58);
-      text.setScale(1);
-    });
+      if (text && text.active) text.setScale(1);
+    };
 
-    background.on("pointerdown", () => {
-      if (this.buttonSfx) {
-        this.buttonSfx.play({ rate: 1.5, seek: 0.45 });
-      }
+    const onPointerDown = () => {
+      if (!background.active) return;
       onClick();
+    };
+
+    background.on("pointerover", onPointerOver);
+    background.on("pointerout", onPointerOut);
+    background.on("pointerdown", onPointerDown);
+
+    this.events.once("shutdown", () => {
+      if (background && background.active) {
+        background.off("pointerover", onPointerOver);
+        background.off("pointerout", onPointerOut);
+        background.off("pointerdown", onPointerDown);
+      }
     });
 
     return { background, text };

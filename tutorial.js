@@ -39,6 +39,12 @@ class Tutorial extends Phaser.Scene {
       this.menuMusic.play();
     }
 
+    this.events.once("shutdown", () => {
+      if (this.menuMusic && this.menuMusic.isPlaying) {
+        this.menuMusic.stop();
+      }
+    });
+
     this.tutorialSteps = [
       {
         message:
@@ -113,6 +119,44 @@ class Tutorial extends Phaser.Scene {
     let backText = null;
     let nextText = null;
 
+    const onNextPointerOver = () => {
+      if (!this.tutorialNextButton.active) return;
+      this.tutorialNextButton.setFillStyle(0x1b1b1b);
+      this.tutorialNextButton.setAlpha(0.66);
+      if (nextText && nextText.active) nextText.setScale(1.03);
+    };
+
+    const onNextPointerOut = () => {
+      if (!this.tutorialNextButton.active) return;
+      this.tutorialNextButton.setFillStyle(0x0f0f0f);
+      this.tutorialNextButton.setAlpha(0.58);
+      if (nextText && nextText.active) nextText.setScale(1);
+    };
+
+    const onNextPointerDown = () => {
+      if (!this.tutorialNextButton.active) return;
+      showStep();
+    };
+
+    const onBackPointerOver = () => {
+      if (!this.backButton.active) return;
+      this.backButton.setFillStyle(0x1b1b1b);
+      this.backButton.setAlpha(0.66);
+      if (backText && backText.active) backText.setScale(1.03);
+    };
+
+    const onBackPointerOut = () => {
+      if (!this.backButton.active) return;
+      this.backButton.setFillStyle(0x0f0f0f);
+      this.backButton.setAlpha(0.58);
+      if (backText && backText.active) backText.setScale(1);
+    };
+
+    const onBackPointerDown = () => {
+      if (!this.backButton.active) return;
+      this.scene.start("telainicial");
+    };
+
     this.backButton = this.add
       .rectangle(width / 2, height * 0.82, 220, 44, 0x0f0f0f)
       .setStrokeStyle(2, 0x2a2a2a)
@@ -145,36 +189,25 @@ class Tutorial extends Phaser.Scene {
       })
       .setOrigin(0.5);
 
-    this.tutorialNextButton.on("pointerover", () => {
-      this.tutorialNextButton.setFillStyle(0x1b1b1b);
-      this.tutorialNextButton.setAlpha(0.66);
-      nextText.setScale(1.03);
-    });
+    this.tutorialNextButton.on("pointerover", onNextPointerOver);
+    this.tutorialNextButton.on("pointerout", onNextPointerOut);
+    this.tutorialNextButton.on("pointerdown", onNextPointerDown);
 
-    this.tutorialNextButton.on("pointerout", () => {
-      this.tutorialNextButton.setFillStyle(0x0f0f0f);
-      this.tutorialNextButton.setAlpha(0.58);
-      nextText.setScale(1);
-    });
+    this.backButton.on("pointerover", onBackPointerOver);
+    this.backButton.on("pointerout", onBackPointerOut);
+    this.backButton.on("pointerdown", onBackPointerDown);
 
-    this.tutorialNextButton.on("pointerdown", () => {
-      showStep();
-    });
-
-    this.backButton.on("pointerover", () => {
-      this.backButton.setFillStyle(0x1b1b1b);
-      this.backButton.setAlpha(0.66);
-      backText.setScale(1.03);
-    });
-
-    this.backButton.on("pointerout", () => {
-      this.backButton.setFillStyle(0x0f0f0f);
-      this.backButton.setAlpha(0.58);
-      backText.setScale(1);
-    });
-
-    this.backButton.on("pointerdown", () => {
-      this.scene.start("telainicial");
+    this.events.once("shutdown", () => {
+      if (this.tutorialNextButton && this.tutorialNextButton.active) {
+        this.tutorialNextButton.off("pointerover", onNextPointerOver);
+        this.tutorialNextButton.off("pointerout", onNextPointerOut);
+        this.tutorialNextButton.off("pointerdown", onNextPointerDown);
+      }
+      if (this.backButton && this.backButton.active) {
+        this.backButton.off("pointerover", onBackPointerOver);
+        this.backButton.off("pointerout", onBackPointerOut);
+        this.backButton.off("pointerdown", onBackPointerDown);
+      }
     });
 
     const showStep = () => {

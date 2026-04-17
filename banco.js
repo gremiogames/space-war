@@ -3,6 +3,8 @@ import TelaInicial from "./telainicial.js";
 
 const COINS_STORAGE_KEY = "spaceWarCoins";
 const COIN_TEXTURE_KEY = "coinIcon";
+const TEST_MODE = true;
+const TEST_MODE_COINS = 10000;
 
 let fallbackCoins = 0;
 let lastRewardAmount = 0;
@@ -20,16 +22,26 @@ function normalizeCoins(value) {
 }
 
 function getCoins() {
+  if (TEST_MODE) return TEST_MODE_COINS;
   if (!canUseStorage()) return fallbackCoins;
-  const stored = window.localStorage.getItem(COINS_STORAGE_KEY);
+  let stored = null;
+  try {
+    stored = window.localStorage.getItem(COINS_STORAGE_KEY);
+  } catch {
+    return fallbackCoins;
+  }
   return normalizeCoins(stored);
 }
 
 function setCoins(value) {
-  const normalized = normalizeCoins(value);
+  const normalized = TEST_MODE ? TEST_MODE_COINS : normalizeCoins(value);
 
   if (canUseStorage()) {
-    window.localStorage.setItem(COINS_STORAGE_KEY, String(normalized));
+    try {
+      window.localStorage.setItem(COINS_STORAGE_KEY, String(normalized));
+    } catch {
+      fallbackCoins = normalized;
+    }
   } else {
     fallbackCoins = normalized;
   }
@@ -59,11 +71,8 @@ function addCoins(amount) {
 }
 
 function calculateVictoryReward(roundCount = 0) {
-  if (roundCount > 35) {
+  if (roundCount >= 35) {
     return randomInt(60, 70);
-  }
-  if (roundCount > 27 && roundCount <= 35) {
-    return randomInt(55, 65);
   }
   if (roundCount >= 17) {
     return randomInt(50, 60);
@@ -72,11 +81,8 @@ function calculateVictoryReward(roundCount = 0) {
 }
 
 function calculateDefeatReward(roundCount = 0) {
-  if (roundCount > 35) {
+  if (roundCount >= 35) {
     return randomInt(15, 20);
-  }
-  if (roundCount > 27 && roundCount <= 35) {
-    return randomInt(13, 18);
   }
   if (roundCount >= 17) {
     return randomInt(10, 15);
@@ -120,7 +126,7 @@ function createMenuCoinsHud(scene) {
     .setDepth(51);
 
   const updateCoinsText = (event) => {
-    if (!valueText.active) return;
+    if (!valueText || !valueText.active) return;
     if (!event || !event.detail) {
       valueText.setText(String(getCoins()));
       return;
@@ -129,17 +135,19 @@ function createMenuCoinsHud(scene) {
     valueText.setText(String(normalizeCoins(event.detail.coins)));
   };
 
-  if (typeof window !== "undefined") {
-    window.addEventListener("space-war-coins-updated", updateCoinsText);
-    scene.events.once("shutdown", () => {
+  const onSceneShutdown = () => {
+    if (typeof window !== "undefined") {
       window.removeEventListener("space-war-coins-updated", updateCoinsText);
-    });
-  }
-
-  scene.events.once("shutdown", () => {
+    }
     if (panel && panel.active) panel.destroy();
     if (valueText && valueText.active) valueText.destroy();
-  });
+  };
+
+  if (typeof window !== "undefined") {
+    window.addEventListener("space-war-coins-updated", updateCoinsText);
+  }
+
+  scene.events.once("shutdown", onSceneShutdown);
 }
 
 const originalMenuPreload = TelaInicial.prototype.preload;
@@ -151,35 +159,46 @@ TelaInicial.prototype.preload = function patchedMenuPreload(...args) {
   }
 };
 
+if (TEST_MODE) {
+  setCoins(TEST_MODE_COINS);
+}
+
 const originalMenuCreate = TelaInicial.prototype.create;
 TelaInicial.prototype.create = function patchedMenuCreate(...args) {
   originalMenuCreate.apply(this, args);
-  createMenuCoinsHud(this);
-};
-
-const originalHandlePlayer2Defeat = Scene0.prototype.handlePlayer2Defeat;
-Scene0.prototype.handlePlayer2Defeat = function patchedHandlePlayer2Defeat(
-  ...args
-) {
-  if (!this.__coinsRewardGranted) {
-    this.__coinsRewardGranted = true;
-    rewardVictory(this.roundCount || 0);
+  if (!this.__coinsHudCreated) {
+    this.__coinsHudCreated = true;
+    createMenuCoinsHud(this);
   }
-
-  return originalHandlePlayer2Defeat.apply(this, args);
 };
 
-const originalHandlePlayer1Defeat = Scene0.prototype.handlePlayer1Defeat;
-Scene0.prototype.handlePlayer1Defeat = function patchedHandlePlayer1Defeat(
-  ...args
-) {
-  if (!this.__coinsRewardGranted) {
-    this.__coinsRewardGranted = true;
-    rewardDefeat(this.roundCount || 0);
-  }
+if (!Scene0.prototype.__coinsRewardPatched) {
+  Scene0.prototype.__coinsRewardPatched = true;
 
-  return originalHandlePlayer1Defeat.apply(this, args);
-};
+  const originalHandlePlayer2Defeat = Scene0.prototype.handlePlayer2Defeat;
+  Scene0.prototype.handlePlayer2Defeat = function patchedHandlePlayer2Defeat(
+    ...args
+  ) {
+    if (!this.__coinsRewardGranted) {
+      this.__coinsRewardGranted = true;
+      rewardVictory(this.roundCount || 0);
+    }
+
+    return originalHandlePlayer2Defeat.apply(this, args);
+  };
+
+  const originalHandlePlayer1Defeat = Scene0.prototype.handlePlayer1Defeat;
+  Scene0.prototype.handlePlayer1Defeat = function patchedHandlePlayer1Defeat(
+    ...args
+  ) {
+    if (!this.__coinsRewardGranted) {
+      this.__coinsRewardGranted = true;
+      rewardDefeat(this.roundCount || 0);
+    }
+
+    return originalHandlePlayer1Defeat.apply(this, args);
+  };
+}
 
 window.BancoMoedas = {
   getCoins,
