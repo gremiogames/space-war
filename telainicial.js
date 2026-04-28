@@ -70,7 +70,7 @@ class TelaInicial extends Phaser.Scene {
 
     this.playOnlineButton = this.createButton({
       x: width / 2,
-      y: height * 0.80,
+      y: height * 0.8,
       label: "Jogar Online",
       fillColor: 0x0f0f0f,
       hoverColor: 0x1b1b1b,

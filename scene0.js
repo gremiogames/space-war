@@ -144,9 +144,10 @@ class scene0 extends Phaser.Scene {
     fallbackOffsets = [],
   ) {
     const reloadEffect = ship?.reloadEffect || {};
-    const offsets = Array.isArray(reloadEffect.offsets) && reloadEffect.offsets.length
-      ? reloadEffect.offsets
-      : fallbackOffsets;
+    const offsets =
+      Array.isArray(reloadEffect.offsets) && reloadEffect.offsets.length
+        ? reloadEffect.offsets
+        : fallbackOffsets;
 
     return {
       textureKey: reloadEffect.textureKey || "sheet",
@@ -398,7 +399,10 @@ class scene0 extends Phaser.Scene {
       }
 
       if (typeof window !== "undefined" && this.onShipsUpdated) {
-        window.removeEventListener("space-war-ships-updated", this.onShipsUpdated);
+        window.removeEventListener(
+          "space-war-ships-updated",
+          this.onShipsUpdated,
+        );
         this.onShipsUpdated = null;
       }
 
@@ -441,8 +445,14 @@ class scene0 extends Phaser.Scene {
           if (!this.scene || !this.scene.isActive()) return;
           this.applyStoreShipToPlayer();
           this.refreshReloadEffectConfigs();
-          this.applyReloadEffectStyle(this.playerReloadOrbs, this.playerReloadEffectConfig);
-          this.applyReloadEffectStyle(this.botReloadOrbs, this.botReloadEffectConfig);
+          this.applyReloadEffectStyle(
+            this.playerReloadOrbs,
+            this.playerReloadEffectConfig,
+          );
+          this.applyReloadEffectStyle(
+            this.botReloadOrbs,
+            this.botReloadEffectConfig,
+          );
           this.updateReloadEffectPositions();
         };
         window.addEventListener("space-war-ships-updated", this.onShipsUpdated);
@@ -1003,11 +1013,11 @@ class scene0 extends Phaser.Scene {
 
     this.tweens.killTweensOf(target);
     target.setAlpha(1);
-    
+
     // Guardar o tint original antes de mudá-lo
     const originalTint = target._tintTopLeft;
     const hadTint = target.isTinted;
-    
+
     target.setTint(0xff6666);
 
     this.tweens.add({
@@ -1235,7 +1245,10 @@ class scene0 extends Phaser.Scene {
       createOrb(this.botReloadEffectConfig),
     ];
 
-    this.applyReloadEffectStyle(this.playerReloadOrbs, this.playerReloadEffectConfig);
+    this.applyReloadEffectStyle(
+      this.playerReloadOrbs,
+      this.playerReloadEffectConfig,
+    );
     this.applyReloadEffectStyle(this.botReloadOrbs, this.botReloadEffectConfig);
 
     this.updateReloadEffectPositions();
@@ -1292,13 +1305,14 @@ class scene0 extends Phaser.Scene {
   playReloadEffect(orbs, config) {
     if (!orbs || orbs.length === 0) return;
 
-    const effectConfig = config || this.playerReloadEffectConfig || {
-      baseScale: 0.75,
-      peakScale: 1.35,
-      duration: 160,
-      hold: 90,
-      resetScale: 0.75,
-    };
+    const effectConfig = config ||
+      this.playerReloadEffectConfig || {
+        baseScale: 0.75,
+        peakScale: 1.35,
+        duration: 160,
+        hold: 90,
+        resetScale: 0.75,
+      };
 
     orbs.forEach((orb) => {
       if (!orb) return;
@@ -1423,7 +1437,10 @@ class scene0 extends Phaser.Scene {
       });
 
       // Adicionar ícone de moeda pequeno se existir
-      if (this.textures.exists("coinIcon") && (!this.rewardCoinIcon || !this.rewardCoinIcon.active)) {
+      if (
+        this.textures.exists("coinIcon") &&
+        (!this.rewardCoinIcon || !this.rewardCoinIcon.active)
+      ) {
         this.rewardCoinIcon = this.add
           .image(
             this.cameras.main.centerX + 90,
@@ -1539,7 +1556,12 @@ class scene0 extends Phaser.Scene {
 
   enableAllButtons() {
     if (!this.button || !this.buttonReload || !this.buttonArmor) return;
-    if (!this.button.active || !this.buttonReload.active || !this.buttonArmor.active) return;
+    if (
+      !this.button.active ||
+      !this.buttonReload.active ||
+      !this.buttonArmor.active
+    )
+      return;
 
     this.button.setInteractive();
     this.buttonReload.setInteractive();
@@ -1562,7 +1584,8 @@ class scene0 extends Phaser.Scene {
   }
 
   executePlayerAction() {
-    if (!this.player || !this.player.active || !this.tiro || !this.tiro.active) return;
+    if (!this.player || !this.player.active || !this.tiro || !this.tiro.active)
+      return;
 
     // Executa apenas a ação selecionada
     if (!this.selectedAction) return;
@@ -1647,7 +1670,13 @@ class scene0 extends Phaser.Scene {
   }
 
   executeBotAction() {
-    if (!this.player2 || !this.player2.active || !this.botTiro || !this.botTiro.active) return;
+    if (
+      !this.player2 ||
+      !this.player2.active ||
+      !this.botTiro ||
+      !this.botTiro.active
+    )
+      return;
 
     if (!this.botSelectedAction) return;
 
