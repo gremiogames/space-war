@@ -3,7 +3,7 @@ import TelaInicial from "./telainicial.js";
 
 const COINS_STORAGE_KEY = "spaceWarCoins";
 const COIN_TEXTURE_KEY = "coinIcon";
-const TEST_MODE = true;
+const TEST_MODE = false;
 const TEST_MODE_COINS = 10000;
 
 let fallbackCoins = 0;

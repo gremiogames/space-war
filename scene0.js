@@ -51,6 +51,8 @@ class scene0 extends Phaser.Scene {
     ];
     this.playerReloadOrbs = [];
     this.botReloadOrbs = [];
+    this.playerReloadEffectConfig = null;
+    this.botReloadEffectConfig = null;
 
     // Sistema de contagem regressiva
     this.roundActive = false;
@@ -136,6 +138,80 @@ class scene0 extends Phaser.Scene {
     }
   }
 
+  getReloadEffectConfigForShip(
+    ship,
+    fallbackSize = this.reloadOrbSize,
+    fallbackOffsets = [],
+  ) {
+    const reloadEffect = ship?.reloadEffect || {};
+    const offsets = Array.isArray(reloadEffect.offsets) && reloadEffect.offsets.length
+      ? reloadEffect.offsets
+      : fallbackOffsets;
+
+    return {
+      textureKey: reloadEffect.textureKey || "sheet",
+      frameKey: reloadEffect.frameKey || "expb_02",
+      displaySize: reloadEffect.displaySize || fallbackSize,
+      baseScale: reloadEffect.baseScale ?? 0.75,
+      peakScale: reloadEffect.peakScale ?? 1.35,
+      duration: reloadEffect.duration ?? 160,
+      hold: reloadEffect.hold ?? 90,
+      resetScale: reloadEffect.resetScale ?? reloadEffect.baseScale ?? 0.75,
+      tint: reloadEffect.tint,
+      depth: reloadEffect.depth ?? 35,
+      offsets: offsets.map((offset) => ({
+        x: offset.x,
+        y: offset.y,
+      })),
+    };
+  }
+
+  refreshReloadEffectConfigs() {
+    if (typeof window === "undefined") return;
+
+    const equippedShip = window.LojaNaves?.getEquippedShip?.();
+
+    this.playerReloadEffectConfig = this.getReloadEffectConfigForShip(
+      equippedShip,
+      this.reloadOrbSize,
+      this.playerReloadOrbOffsets,
+    );
+    this.botReloadEffectConfig = {
+      textureKey: "sheet",
+      frameKey: "expb_02",
+      displaySize: this.botReloadOrbSize,
+      baseScale: 0.75,
+      peakScale: 1.35,
+      duration: 160,
+      hold: 90,
+      resetScale: 0.75,
+      depth: 35,
+      offsets: this.botReloadOrbOffsets.map((offset) => ({
+        x: offset.x,
+        y: offset.y,
+      })),
+    };
+  }
+
+  applyReloadEffectStyle(orbs, config) {
+    if (!orbs || !config) return;
+
+    orbs.forEach((orb) => {
+      if (!orb || !orb.active) return;
+
+      orb.setTexture(config.textureKey, config.frameKey);
+      orb.setDisplaySize(config.displaySize, config.displaySize);
+      orb.setScale(config.baseScale);
+      orb.setDepth(config.depth);
+
+      if (config.tint && config.tint !== 0xffffff) {
+        orb.setTint(config.tint);
+      } else {
+        orb.clearTint();
+      }
+    });
+  }
+
   getRoundDurationSeconds() {
     if (this.roundCount >= this.roundThresholds.toExact1sAtRound) return 1;
     if (this.roundCount >= this.roundThresholds.to1sAtRound) return 1;
@@ -213,8 +289,9 @@ class scene0 extends Phaser.Scene {
 
   create() {
     const x = this.scale.width / 2;
-    const y = this.scale.height - 75;
-    const yOpposite = 75;
+    const y = this.scale.height - 45;
+    const yOpposite = 58;
+    const centerX = this.cameras.main.centerX;
     const playerScale = 1.55;
     const botScale = 1.25;
 
@@ -251,7 +328,7 @@ class scene0 extends Phaser.Scene {
       .setScrollFactor(0)
       .setDepth(-10);
 
-    const mapZoomOut = 0.85;
+    const mapZoomOut = 0.95;
     this.background.tileScaleX = mapZoomOut;
     this.background.tileScaleY = mapZoomOut;
 
@@ -260,7 +337,7 @@ class scene0 extends Phaser.Scene {
     const visibleMapHeight = this.scale.height / this.background.tileScaleY;
     const mapOffsetX = Math.max(0, (mapTexture.width - visibleMapWidth) / 2);
     const mapOffsetY = Math.max(0, (mapTexture.height - visibleMapHeight) / 2);
-    const mapOffsetYExtra = 0;
+    const mapOffsetYExtra = 42;
     this.backgroundMinX = 0;
     this.backgroundMaxX = Math.max(0, mapTexture.width - visibleMapWidth);
     this.background.tilePositionX = mapOffsetX;
@@ -356,12 +433,17 @@ class scene0 extends Phaser.Scene {
 
     this.player2.body.setAllowGravity(false);
     this.applyStoreShipToPlayer();
+    this.refreshReloadEffectConfigs();
 
     if (typeof window !== "undefined") {
       if (!this.onShipsUpdated) {
         this.onShipsUpdated = () => {
           if (!this.scene || !this.scene.isActive()) return;
           this.applyStoreShipToPlayer();
+          this.refreshReloadEffectConfigs();
+          this.applyReloadEffectStyle(this.playerReloadOrbs, this.playerReloadEffectConfig);
+          this.applyReloadEffectStyle(this.botReloadOrbs, this.botReloadEffectConfig);
+          this.updateReloadEffectPositions();
         };
         window.addEventListener("space-war-ships-updated", this.onShipsUpdated);
       }
@@ -436,8 +518,10 @@ class scene0 extends Phaser.Scene {
     }
 
     // Botao de tiro clicavel na tela.
+    const buttonBaseY = this.scale.height - 90;
+
     this.button = this.add
-      .sprite(580, 500, "shotbutton", 10)
+      .sprite(this.scale.width * 0.72, buttonBaseY, "shotbutton", 10)
       .setScale(2.0)
       .setDisplaySize(72, 72)
       .setInteractive();
@@ -445,13 +529,13 @@ class scene0 extends Phaser.Scene {
 
     // Segundo botao, no lado oposto.
     this.buttonArmor = this.add
-      .image(200, 500, "armorButton")
+      .image(this.scale.width * 0.24, buttonBaseY, "armorButton")
       .setDisplaySize(72, 72)
       .setInteractive();
 
     // Terceiro botao, a direita do botao de tiro e um pouco mais acima.
     this.buttonReload = this.add
-      .image(this.button.x + 100, this.button.y - 30, "reloadButton")
+      .image(this.button.x + 122, this.button.y - 30, "reloadButton")
       .setDisplaySize(72, 72)
       .setInteractive();
 
@@ -474,6 +558,7 @@ class scene0 extends Phaser.Scene {
     this.botTiro = this.physics.add
       .image(x, yOpposite + 80, "sheet", "plasma_1")
       .setScale(3.2)
+      .setFlipY(true)
       .setVisible(false);
 
     // Configurar física do tiro
@@ -500,7 +585,7 @@ class scene0 extends Phaser.Scene {
 
     // Texto de contagem regressiva no centro da tela
     this.countdownText = this.add
-      .text(x, 50, "3", {
+      .text(centerX - 4, 32, "3", {
         fontSize: this.countdownNumberSize,
         fontFamily: this.uiFontFamily,
         fill: "#ffff00",
@@ -511,7 +596,7 @@ class scene0 extends Phaser.Scene {
     // Mostra apenas o número de munição ao lado direito do botão de recarga.
     this.ammoText = this.add
       .text(
-        this.buttonReload.x + 52,
+        this.buttonReload.x + 58,
         this.buttonReload.y,
         `${this.shotsLoaded}`,
         {
@@ -539,7 +624,7 @@ class scene0 extends Phaser.Scene {
       .setDepth(40);
 
     this.victoryText = this.add
-      .text(this.scale.width / 2, this.scale.height / 2, "", {
+      .text(this.cameras.main.centerX, this.cameras.main.centerY, "", {
         fontSize: "72px",
         fontFamily: this.uiFontFamily,
         fill: "#00ff88",
@@ -1130,20 +1215,28 @@ class scene0 extends Phaser.Scene {
   }
 
   createReloadEffects() {
-    const createOrb = (size = this.reloadOrbSize) =>
+    this.refreshReloadEffectConfigs();
+
+    const createOrb = (config) =>
       this.add
-        .sprite(0, 0, "sheet", "expb_02")
-        .setDisplaySize(size, size)
+        .sprite(0, 0, config.textureKey, config.frameKey)
+        .setDisplaySize(config.displaySize, config.displaySize)
         .setVisible(false)
         .setAlpha(0)
-        .setScale(0.8)
-        .setDepth(35);
+        .setScale(config.baseScale)
+        .setDepth(config.depth);
 
-    this.playerReloadOrbs = [createOrb(), createOrb()];
-    this.botReloadOrbs = [
-      createOrb(this.botReloadOrbSize),
-      createOrb(this.botReloadOrbSize),
+    this.playerReloadOrbs = [
+      createOrb(this.playerReloadEffectConfig),
+      createOrb(this.playerReloadEffectConfig),
     ];
+    this.botReloadOrbs = [
+      createOrb(this.botReloadEffectConfig),
+      createOrb(this.botReloadEffectConfig),
+    ];
+
+    this.applyReloadEffectStyle(this.playerReloadOrbs, this.playerReloadEffectConfig);
+    this.applyReloadEffectStyle(this.botReloadOrbs, this.botReloadEffectConfig);
 
     this.updateReloadEffectPositions();
     this.events.once("shutdown", () => {
@@ -1157,7 +1250,8 @@ class scene0 extends Phaser.Scene {
     });
   }
 
-  getReloadEffectPositions(ship, offsets = []) {
+  getReloadEffectPositions(ship, config = null) {
+    const offsets = config?.offsets || [];
     if (!ship || offsets.length === 0) return [];
 
     const baseX = ship.x;
@@ -1173,7 +1267,7 @@ class scene0 extends Phaser.Scene {
     if (this.player && this.playerReloadOrbs.length === 2) {
       const positions = this.getReloadEffectPositions(
         this.player,
-        this.playerReloadOrbOffsets,
+        this.playerReloadEffectConfig,
       );
       this.playerReloadOrbs.forEach((orb, index) => {
         if (!orb || !orb.active || !positions[index]) return;
@@ -1185,7 +1279,7 @@ class scene0 extends Phaser.Scene {
     if (this.player2 && this.botReloadOrbs.length === 2) {
       const positions = this.getReloadEffectPositions(
         this.player2,
-        this.botReloadOrbOffsets,
+        this.botReloadEffectConfig,
       );
       this.botReloadOrbs.forEach((orb, index) => {
         if (!orb || !orb.active || !positions[index]) return;
@@ -1195,25 +1289,33 @@ class scene0 extends Phaser.Scene {
     }
   }
 
-  playReloadEffect(orbs) {
+  playReloadEffect(orbs, config) {
     if (!orbs || orbs.length === 0) return;
+
+    const effectConfig = config || this.playerReloadEffectConfig || {
+      baseScale: 0.75,
+      peakScale: 1.35,
+      duration: 160,
+      hold: 90,
+      resetScale: 0.75,
+    };
 
     orbs.forEach((orb) => {
       if (!orb) return;
 
       this.tweens.killTweensOf(orb);
-      orb.setVisible(true).setAlpha(0).setScale(0.8);
+      orb.setVisible(true).setAlpha(0).setScale(effectConfig.baseScale);
 
       this.tweens.add({
         targets: orb,
         alpha: { from: 0, to: 1 },
-        scale: { from: 0.75, to: 1.35 },
-        duration: 160,
+        scale: { from: effectConfig.baseScale, to: effectConfig.peakScale },
+        duration: effectConfig.duration,
         ease: "Sine.easeOut",
         yoyo: true,
-        hold: 90,
+        hold: effectConfig.hold,
         onComplete: () => {
-          orb.setVisible(false).setAlpha(0).setScale(0.75);
+          orb.setVisible(false).setAlpha(0).setScale(effectConfig.resetScale);
         },
       });
     });
@@ -1221,12 +1323,12 @@ class scene0 extends Phaser.Scene {
 
   playPlayerReloadEffect() {
     this.updateReloadEffectPositions();
-    this.playReloadEffect(this.playerReloadOrbs);
+    this.playReloadEffect(this.playerReloadOrbs, this.playerReloadEffectConfig);
   }
 
   playBotReloadEffect() {
     this.updateReloadEffectPositions();
-    this.playReloadEffect(this.botReloadOrbs);
+    this.playReloadEffect(this.botReloadOrbs, this.botReloadEffectConfig);
   }
 
   showShieldWithQuickFade(shield, x, y) {

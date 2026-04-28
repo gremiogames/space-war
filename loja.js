@@ -9,22 +9,37 @@ const SHIPS = [
     {
         id: "vanguarda-esmeralda",
         name: "Vanguarda Esmeralda",
-        description: "Satélite SpaceX equipado com armamento.",
-        price: 100,
+        description: "Satélite SpaceX equipado com armamento",
+        price: 200,
         textureKey: "ship-atlas-core",
         assetPath: "assets/map-assets/spritesheet.png",
         frameRect: { x: 266, y: 477, w: 64, h: 64 },
         frameKey: "enemy_1_g_m.png",
         playerScale: 1.45,
         previewScale: 1.05,
+        flipYInStorePreview: true,
         tint: 0xffffff,
         flipYForPlayer1: true,
+        reloadEffect: {
+            textureKey: "sheet",
+            frameKey: "expb_02",
+            displaySize: 22,
+            baseScale: 0.75,
+            peakScale: 1.35,
+            duration: 160,
+            hold: 90,
+            resetScale: 0.75,
+            offsets: [
+                { x: -20, y: -63 },
+                { x: 22, y: -63 },
+            ],
+        },
         defaultOwned: false,
     },
     {
         id: "falcao-mk1",
         name: "Falcao MK-I",
-        description: "Nave espacial da frota humana.",
+        description: "Nave espacial da frota humana",
         price: 0,
         textureKey: "ship-falcao-mk1",
         assetPath: "assets/player_b_m.png",
@@ -33,13 +48,27 @@ const SHIPS = [
         playerScale: 1.55,
         previewScale: 1.15,
         tint: 0xffffff,
+        reloadEffect: {
+            textureKey: "sheet",
+            frameKey: "expb_03",
+            displaySize: 22,
+            baseScale: 0.72,
+            peakScale: 1.28,
+            duration: 150,
+            hold: 80,
+            resetScale: 0.72,
+            offsets: [
+                { x: -18, y: -62 },
+                { x: 18, y: -62 },
+            ],
+        },
         defaultOwned: true,
     },
     {
         id: "falcao-elite",
-        name: "Falcao Elite",
-        description: "Versao de elite com casco dourado.",
-        price: 250,
+        name: "Falcão de Elite",
+        description: "Nave Espacial de combate avançada da frota humana",
+        price: 500,
         textureKey: "ship-falcao-elite",
         assetPath: "assets/player_b_m.png",
         frameWidth: 64,
@@ -47,42 +76,100 @@ const SHIPS = [
         playerScale: 1.55,
         previewScale: 1.15,
         tint: 0xffdd66,
+        reloadEffect: {
+            textureKey: "sheet",
+            frameKey: "expb_02",
+            displaySize: 22,
+            baseScale: 0.75,
+            peakScale: 1.35,
+            duration: 160,
+            hold: 90,
+            resetScale: 0.75,
+            offsets: [
+                { x: -20, y: -63 },
+                { x: 17, y: -63 },
+            ],
+        },
         defaultOwned: false,
     },
     {
         id: "fragata-rubi",
-        name: "Space Tesla",
-        description: "Nave espacial do líder Eloi Musk.",
-        price: 400,
+        name: "Space X",
+        description: "Nave espacial da frota Humana de Defesa",
+        price: 300,
         textureKey: "ship-atlas-core",
         assetPath: "assets/map-assets/spritesheet.png",
         frameRect: { x: 68, y: 741, w: 64, h: 64 },
         frameKey: "enemy_2_r_m.png",
         playerScale: 1.45,
         previewScale: 1.05,
+        flipYInStorePreview: true,
         tint: 0xffffff,
         flipYForPlayer1: true,
+        reloadEffect: {
+            textureKey: "sheet",
+            frameKey: "expb_02",
+            displaySize: 22,
+            baseScale: 0.75,
+            peakScale: 1.35,
+            duration: 160,
+            hold: 90,
+            resetScale: 0.75,
+            offsets: [
+                { x: -16, y: -63 },
+                { x: 17, y: -63 },
+            ],
+        },
         defaultOwned: false,
     },
     {
         id: "fragata-neon",
-        name: "Fragata Neon",
-        description: "Espaçonave marciana do Et. Bilu.",
-        price: 500,
+        name: "Troféu do General",
+        description: "Espaçonave marciana do General Et. Bilu",
+        price: 1000,
         textureKey: "ship-fragata-neon",
         assetPath: "assets/Alien-Frigate(3).png",
         frameWidth: 110,
         frameHeight: 110,
         playerScale: 1.25,
         previewScale: 0.68,
+        flipYInStorePreview: true,
         tint: 0x66ffee,
         flipYForPlayer1: true,
+        reloadEffect: {
+            textureKey: "sheet",
+            frameKey: "expb_02",
+            displaySize: 22,
+            baseScale: 0.75,
+            peakScale: 1.35,
+            duration: 160,
+            hold: 90,
+            resetScale: 0.75,
+            offsets: [
+                { x: -12, y: -70 },
+                { x: 12, y: -70 },
+            ],
+        },
         defaultOwned: false,
     },
 ];
 
 const SHIPS_BY_ID = new Map(SHIPS.map((ship) => [ship.id, ship]));
 const DEFAULT_SHIP = SHIPS.find((ship) => ship.defaultOwned) || SHIPS[0];
+const DEFAULT_RELOAD_EFFECT = {
+    textureKey: "sheet",
+    frameKey: "expb_02",
+    displaySize: 22,
+    baseScale: 0.75,
+    peakScale: 1.35,
+    duration: 160,
+    hold: 90,
+    resetScale: 0.75,
+    offsets: [
+        { x: -20, y: -63 },
+        { x: 17, y: -63 },
+    ],
+};
 
 function canUseStorage() {
     return (
@@ -186,8 +273,20 @@ function getShipById(shipId) {
     return SHIPS_BY_ID.get(shipId) || DEFAULT_SHIP;
 }
 
+function getReloadEffectForShip(shipId) {
+    const ship = getShipById(shipId);
+    return {
+        ...DEFAULT_RELOAD_EFFECT,
+        ...(ship.reloadEffect || {}),
+    };
+}
+
 function getEquippedShip() {
     return getShipById(getEquippedShipId());
+}
+
+function getEquippedShipReloadEffect() {
+    return getReloadEffectForShip(getEquippedShipId());
 }
 
 function notifyShipsUpdated() {
@@ -335,12 +434,12 @@ function openStoreModal(scene) {
         .setInteractive();
 
     const panel = scene.add
-        .rectangle(width / 2, height / 2, width * 0.84, height * 0.86, 0x0e121a, 0.95)
+        .rectangle(width / 2, height / 2, width * 0.88, height * 0.9, 0x0e121a, 0.95)
         .setStrokeStyle(3, 0x2e3e57)
         .setDepth(121);
 
     const title = scene.add
-        .text(width / 2, height * 0.14, "LOJA DE NAVES", {
+        .text(width / 2, height * 0.12, "LOJA DE NAVES", {
             fontFamily: pixelFont,
             fontSize: "16px",
             color: "#e9f2ff",
@@ -349,7 +448,7 @@ function openStoreModal(scene) {
         .setDepth(122);
 
     const coinsLabel = scene.add
-        .text(width / 2, height * 0.19, "", {
+        .text(width / 2, height * 0.175, "", {
             fontFamily: pixelFont,
             fontSize: "11px",
             color: "#fff4ba",
@@ -358,7 +457,7 @@ function openStoreModal(scene) {
         .setDepth(122);
 
     const feedbackText = scene.add
-        .text(width / 2, height * 0.85, "", {
+        .text(width / 2, height * 0.87, "", {
             fontFamily: pixelFont,
             fontSize: "10px",
             color: "#9affbe",
@@ -367,21 +466,52 @@ function openStoreModal(scene) {
         .setDepth(122)
         .setVisible(false);
 
-    const rowStartY = height * 0.29;
-    const rowGap = 84;
+    // Scroll configuration
+    const scrollAreaTop = height * 0.24;
+    const scrollAreaHeight = height * 0.66;
+    const rowGap = 88;
     const rows = [];
+    let scrollOffset = 0;
 
+    // Calculate if we need scrolling
+    const totalRowsHeight = SHIPS.length * rowGap + 34;
+    const canScroll = totalRowsHeight > scrollAreaHeight;
+    const maxScroll = canScroll ? Math.max(0, totalRowsHeight - scrollAreaHeight) : 0;
+
+    // Create scroll mask
+    if (canScroll) {
+        const maskGraphics = scene.make.graphics({
+            x: width / 2,
+            y: scrollAreaTop,
+            add: false,
+        });
+        maskGraphics.fillStyle(0xffffff);
+        maskGraphics.fillRect(
+            -(width * 0.88) / 2,
+            0,
+            width * 0.88,
+            scrollAreaHeight
+        );
+        const mask = maskGraphics.createGeometryMask();
+    }
+
+    const rowStartY = scrollAreaTop + 38;
+
+    // Create container for scrollable content
+    const scrollContainer = scene.add.container(0, 0);
+    
     SHIPS.forEach((ship, index) => {
-        const rowY = rowStartY + index * rowGap;
+        const baseRowY = rowStartY + index * rowGap;
 
         const rowBackground = scene.add
-            .rectangle(width / 2, rowY, width * 0.74, 70, 0x182436, 0.88)
+            .rectangle(width / 2, baseRowY, width * 0.78, 80, 0x182436, 0.88)
             .setStrokeStyle(2, 0x304966)
             .setDepth(122);
 
         const preview = scene.add
-            .sprite(width * 0.2, rowY, ship.textureKey, ship.frameKey || 0)
+            .sprite(width * 0.18, baseRowY, ship.textureKey, ship.frameKey || 0)
             .setScale(ship.previewScale)
+            .setFlipY(Boolean(ship.flipYInStorePreview))
             .setDepth(123);
 
         if (ship.tint && ship.tint !== 0xffffff) {
@@ -389,7 +519,7 @@ function openStoreModal(scene) {
         }
 
         const nameText = scene.add
-            .text(width * 0.29, rowY - 14, ship.name, {
+            .text(width * 0.3, baseRowY - 14, ship.name, {
                 fontFamily: pixelFont,
                 fontSize: "10px",
                 color: "#eaf3ff",
@@ -398,22 +528,23 @@ function openStoreModal(scene) {
             .setDepth(123);
 
         const descText = scene.add
-            .text(width * 0.29, rowY + 10, ship.description, {
+            .text(width * 0.3, baseRowY + 10, ship.description, {
                 fontFamily: pixelFont,
-                fontSize: "8px",
+                fontSize: "7px",
                 color: "#adc7e8",
+                wordWrap: { width: width * 0.48 },
             })
             .setOrigin(0, 0.5)
             .setDepth(123);
 
         const actionButton = scene.add
-            .rectangle(width * 0.77, rowY, 150, 40, 0x1b1b1b, 0.95)
+            .rectangle(width * 0.8, baseRowY, 150, 40, 0x1b1b1b, 0.95)
             .setStrokeStyle(2, 0x3b3b3b)
             .setInteractive({ useHandCursor: true })
             .setDepth(123);
 
         const actionLabel = scene.add
-            .text(width * 0.77, rowY, "", {
+            .text(width * 0.8, baseRowY, "", {
                 fontFamily: pixelFont,
                 fontSize: "9px",
                 color: "#f0f0f0",
@@ -434,14 +565,96 @@ function openStoreModal(scene) {
         });
     });
 
+    // Add all row elements to scroll container
+    rows.forEach((row) => {
+        scrollContainer.add([
+            row.rowBackground,
+            row.preview,
+            row.nameText,
+            row.descText,
+            row.actionButton,
+            row.actionLabel,
+        ]);
+    });
+
+    // Create mask for scrollable area
+    const maskGraphics = scene.make.graphics({ add: false });
+    maskGraphics.fillStyle(0xffffff);
+    maskGraphics.fillRect(
+        width / 2 - (width * 0.88) / 2,
+        scrollAreaTop,
+        width * 0.88,
+        scrollAreaHeight
+    );
+    const mask = maskGraphics.createGeometryMask();
+    scrollContainer.setMask(mask);
+    scrollContainer.setDepth(122);
+
+    // Handle scroll with draggable scrollbar
+    const onWheel = (pointer, gameObjects, deltaX, deltaY) => {
+        if (!scene.__shipStoreModal) return;
+        scrollOffset = Phaser.Math.Clamp(
+            scrollOffset + deltaY * 0.3,
+            0,
+            maxScroll
+        );
+        scrollContainer.y = -scrollOffset;
+        updateScrollBar();
+    };
+
+    // Create scrollbar
+    const scrollBarX = width / 2 + (width * 0.88) / 2 - 12;
+    const scrollBarTrack = scene.add
+        .rectangle(scrollBarX, height / 2, 8, scrollAreaHeight, 0x0a0f15, 0.6)
+        .setDepth(125);
+
+    const scrollBarHeight = (scrollAreaHeight / totalRowsHeight) * scrollAreaHeight;
+    const scrollBar = scene.add
+        .rectangle(scrollBarX, scrollAreaTop + scrollBarHeight / 2, 8, scrollBarHeight, 0x4a7a9f, 0.9)
+        .setDepth(125)
+        .setInteractive({ useHandCursor: true });
+
+    let isDraggingScrollBar = false;
+
+    scrollBar.on("pointerdown", () => {
+        isDraggingScrollBar = true;
+    });
+
+    scene.input.on("pointerup", () => {
+        isDraggingScrollBar = false;
+    });
+
+    scene.input.on("pointermove", (pointer) => {
+        if (!isDraggingScrollBar || !scene.__shipStoreModal) return;
+
+        // Calculate scroll position based on scrollbar Y
+        const scrollBarTrackTop = scrollAreaTop;
+        const scrollBarTrackBottom = scrollAreaTop + scrollAreaHeight;
+        const trackHeight = scrollBarTrackBottom - scrollBarTrackTop - scrollBarHeight;
+
+        const clampedY = Phaser.Math.Clamp(pointer.y, scrollBarTrackTop + scrollBarHeight / 2, scrollBarTrackBottom - scrollBarHeight / 2);
+        const scrollPercent = (clampedY - scrollBarTrackTop - scrollBarHeight / 2) / trackHeight;
+        
+        scrollOffset = scrollPercent * maxScroll;
+        scrollContainer.y = -scrollOffset;
+        updateScrollBar();
+    });
+
+    const updateScrollBar = () => {
+        if (!canScroll) return;
+        const scrollPercent = scrollOffset / maxScroll;
+        const scrollBarY = scrollAreaTop + (scrollAreaHeight - scrollBarHeight) * scrollPercent + scrollBarHeight / 2;
+        scrollBar.y = scrollBarY;
+    };
+
     const closeButton = scene.add
-        .rectangle(width / 2, height * 0.91, 210, 38, 0x2c1111, 0.95)
+        .rectangle(width / 2, height * 0.915, 190, 34, 0x2c1111, 0.95)
         .setStrokeStyle(2, 0x5e2424)
         .setInteractive({ useHandCursor: true })
         .setDepth(123);
 
     const closeLabel = scene.add
-        .text(width / 2, height * 0.91, "Fechar", {
+        .text(width / 2, height * 0.915, "Fechar", {
             fontFamily: pixelFont,
             fontSize: "10px",
             color: "#ffd5d5",
@@ -457,6 +670,10 @@ function openStoreModal(scene) {
         feedbackText,
         closeButton,
         closeLabel,
+        scrollContainer,
+        maskGraphics,
+        scrollBarTrack,
+        scrollBar,
         ...rows.flatMap((row) => [
             row.rowBackground,
             row.preview,
@@ -694,6 +911,8 @@ window.LojaNaves = {
     getShips: () => [...SHIPS],
     getOwnedShips,
     getEquippedShip,
+    getReloadEffectForShip,
+    getEquippedShipReloadEffect,
     setEquippedShip,
     buyShip,
 };

@@ -42,7 +42,7 @@ class TelaInicial extends Phaser.Scene {
 
     this.tutorialButton = this.createButton({
       x: width / 2,
-      y: height * 0.62,
+      y: height * 0.58,
       label: "Tutorial",
       fillColor: 0x0f0f0f,
       hoverColor: 0x1b1b1b,
@@ -56,7 +56,7 @@ class TelaInicial extends Phaser.Scene {
 
     this.playOfflineButton = this.createButton({
       x: width / 2,
-      y: height * 0.72,
+      y: height * 0.69,
       label: "Jogar Offline",
       fillColor: 0x0f0f0f,
       hoverColor: 0x1b1b1b,
@@ -70,7 +70,7 @@ class TelaInicial extends Phaser.Scene {
 
     this.playOnlineButton = this.createButton({
       x: width / 2,
-      y: height * 0.82,
+      y: height * 0.80,
       label: "Jogar Online",
       fillColor: 0x0f0f0f,
       hoverColor: 0x1b1b1b,
@@ -80,7 +80,7 @@ class TelaInicial extends Phaser.Scene {
     });
 
     this.statusText = this.add
-      .text(width / 2, height * 0.91, "", {
+      .text(width / 2, height * 0.885, "", {
         fontFamily: pixelFont,
         fontSize: "12px",
         color: "#bfbfbf",
@@ -90,8 +90,9 @@ class TelaInicial extends Phaser.Scene {
   }
 
   createButton({ x, y, label, fillColor, hoverColor, onClick }) {
-    const width = 210;
-    const height = 42;
+    const width = Math.min(this.scale.width * 0.3, 220);
+    const height = Math.max(36, this.scale.height * 0.075);
+    const fontSize = Math.max(10, Math.round(this.scale.height * 0.026));
 
     const background = this.add
       .rectangle(x, y, width, height, fillColor)
@@ -102,7 +103,7 @@ class TelaInicial extends Phaser.Scene {
     const text = this.add
       .text(x, y, label, {
         fontFamily: '"Press Start 2P", monospace',
-        fontSize: "12px",
+        fontSize: `${fontSize}px`,
         fontStyle: "bold",
         color: "#ededed",
       })
