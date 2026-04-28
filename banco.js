@@ -197,7 +197,7 @@ TelaInicial.prototype.create = function patchedMenuCreate(...args) {
 };
 
 // Também recria o HUD quando a cena "acorda" (após ser pausada)
-const originalMenuWake = TelaInicial.prototype.wake || function() {};
+const originalMenuWake = TelaInicial.prototype.wake || function () {};
 TelaInicial.prototype.wake = function patchedMenuWake(...args) {
   if (originalMenuWake) originalMenuWake.apply(this, args);
   // Permitir que o HUD seja recriado se foi destruído
