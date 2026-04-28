@@ -26,7 +26,7 @@ function normalizeCoins(value) {
 function getCoins() {
   if (TEST_MODE) return TEST_MODE_COINS;
   if (!canUseStorage()) return fallbackCoins;
-  
+
   // Verificar versão e limpar se necessário
   let storedVersion = null;
   try {
@@ -34,7 +34,7 @@ function getCoins() {
   } catch {
     return fallbackCoins;
   }
-  
+
   if (storedVersion !== COINS_STORAGE_VERSION) {
     try {
       window.localStorage.removeItem(COINS_STORAGE_KEY);
@@ -42,7 +42,7 @@ function getCoins() {
     } catch {}
     return 0;
   }
-  
+
   let stored = null;
   try {
     stored = window.localStorage.getItem(COINS_STORAGE_KEY);
