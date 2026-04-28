@@ -53,13 +53,16 @@ class Tutorial extends Phaser.Scene {
         message: "- Há um curto periodo de tempo para agir, pense rápido!",
       },
       {
-        message: "- Recarregar aumenta sua munição, porém o deixa vulnerável.",
+        message: "- Recarregar aumenta sua munição, porém o deixa vulnerável a ataques.",
         icons: ["reload", "heart"],
       },
       {
         message:
-          "- Use o botão de atirar para atingir seu inimigo, ou use o escudo para se defender.",
+          "- Use o botão de atirar para atingir seu inimigo, ou use o escudo para se defender e anular ataques inimigos.",
         icons: ["shoot", "shield"],
+      },
+      {
+        message: "- Não disperdice munição, tiros podem se chocar!",
       },
       {
         message: "- Volte ao menu para iniciar uma partida.",
