@@ -630,16 +630,11 @@ function openStoreModal(scene) {
     .setInteractive({ useHandCursor: true });
 
   let isDraggingScrollBar = false;
-
-  scrollBar.on("pointerdown", () => {
-    isDraggingScrollBar = true;
-  });
-
-  scene.input.on("pointerup", () => {
+  const onPointerUp = () => {
     isDraggingScrollBar = false;
-  });
+  };
 
-  scene.input.on("pointermove", (pointer) => {
+  const onPointerMove = (pointer) => {
     if (!isDraggingScrollBar || !scene.__shipStoreModal) return;
 
     // Calculate scroll position based on scrollbar Y
@@ -659,7 +654,15 @@ function openStoreModal(scene) {
     scrollOffset = scrollPercent * maxScroll;
     scrollContainer.y = -scrollOffset;
     updateScrollBar();
+  };
+
+  scrollBar.on("pointerdown", () => {
+    isDraggingScrollBar = true;
   });
+
+  scene.input.on("pointerup", onPointerUp);
+
+  scene.input.on("pointermove", onPointerMove);
 
   const updateScrollBar = () => {
     if (!canScroll) return;
@@ -811,6 +814,11 @@ function openStoreModal(scene) {
         row.actionButton.off("pointerdown", row._onActionButtonClick);
       }
     });
+
+    if (scene.input) {
+      scene.input.off("pointerup", onPointerUp);
+      scene.input.off("pointermove", onPointerMove);
+    }
 
     modalItems.forEach((item) => {
       if (item && item.active) item.destroy();

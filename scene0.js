@@ -344,21 +344,29 @@ class scene0 extends Phaser.Scene {
     this.background.tilePositionX = mapOffsetX;
     this.background.tilePositionY = mapOffsetY + mapOffsetYExtra;
 
-    this.laser = this.sound.add("laser");
-    this.fullReloadSfx = this.sound.add("fullReload");
-    this.shieldSfx = this.sound.add("shieldSfx");
-    this.explosionSfx = this.sound.add("explosionSfx");
-    this.laserExplosionSfx = this.sound.add("laserExplosionSfx");
-    this.laserBarrierSfx = this.sound.add("laserBarrierSfx");
-    this.losingLifeSfx = this.sound.add("losingLifeSfx");
+    this.laser = this.sound.get("laser") || this.sound.add("laser");
+    this.fullReloadSfx =
+      this.sound.get("fullReload") || this.sound.add("fullReload");
+    this.shieldSfx = this.sound.get("shieldSfx") || this.sound.add("shieldSfx");
+    this.explosionSfx =
+      this.sound.get("explosionSfx") || this.sound.add("explosionSfx");
+    this.laserExplosionSfx =
+      this.sound.get("laserExplosionSfx") ||
+      this.sound.add("laserExplosionSfx");
+    this.laserBarrierSfx =
+      this.sound.get("laserBarrierSfx") || this.sound.add("laserBarrierSfx");
+    this.losingLifeSfx =
+      this.sound.get("losingLifeSfx") || this.sound.add("losingLifeSfx");
     this.menuMusic = this.sound.get("menuMusic");
     if (this.menuMusic && this.menuMusic.isPlaying) {
       this.menuMusic.stop();
     }
-    this.gameMusic = this.sound.add("gameMusic", {
-      loop: true,
-      volume: 0.35,
-    });
+    this.gameMusic =
+      this.sound.get("gameMusic") ||
+      this.sound.add("gameMusic", {
+        loop: true,
+        volume: 0.35,
+      });
 
     if (!this.gameMusic.isPlaying) {
       this.gameMusic.play();
