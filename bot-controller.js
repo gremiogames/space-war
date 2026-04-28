@@ -34,8 +34,12 @@ class BotController {
       return "shoot";
     }
 
-    // Sem munição: prioriza recarga, mas pode optar por escudo.
+    // Sem munição: se o player tem munição, favorece escudo sobre recarga.
     if (botShotsLoaded <= 0) {
+      if (playerShotsLoaded >= 1) {
+        return this.weightedPick({ armor: 60, reload: 40 });
+      }
+
       return Math.random() < 0.8 ? "reload" : "armor";
     }
 
