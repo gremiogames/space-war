@@ -53,7 +53,8 @@ class Tutorial extends Phaser.Scene {
         message: "- Há um curto periodo de tempo para agir, pense rápido!",
       },
       {
-        message: "- Recarregar aumenta sua munição, porém o deixa vulnerável a ataques.",
+        message:
+          "- Recarregar aumenta sua munição, porém o deixa vulnerável a ataques.",
         icons: ["reload", "heart"],
       },
       {
