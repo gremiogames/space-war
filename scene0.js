@@ -63,16 +63,16 @@ class scene0 extends Phaser.Scene {
       to4sAtRound: 1,
       to3sAtRound: 7,
       to2sAtRound: 16,
-      to1sAtRound: 27,
-      toExact1sAtRound: 35,
+      to1sAtRound: 28,
+      toExact1sAtRound: 37,
     };
     this.mapSpeedByPhase = {
       phase5s: 0.29,
       phase4s: 0.38,
       phase3s: 0.8,
       phase2s: 1.25,
-      phase1s: 1.8,
-      phaseExact1s: 2.2,
+      phase1s: 1.73,
+      phaseExact1s: 2.1,
     };
     this.countdownText;
     this.actionExecuted = false; // Controla se uma ação foi executada nesta rodada

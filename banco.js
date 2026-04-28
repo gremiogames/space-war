@@ -161,6 +161,10 @@ function createMenuCoinsHud(scene) {
     }
     if (panel && panel.active) panel.destroy();
     if (valueText && valueText.active) valueText.destroy();
+    // Remover flag para permitir recriação do HUD
+    if (scene && scene.__coinsHudCreated) {
+      scene.__coinsHudCreated = false;
+    }
   };
 
   if (typeof window !== "undefined") {
@@ -186,6 +190,17 @@ if (TEST_MODE) {
 const originalMenuCreate = TelaInicial.prototype.create;
 TelaInicial.prototype.create = function patchedMenuCreate(...args) {
   originalMenuCreate.apply(this, args);
+  if (!this.__coinsHudCreated) {
+    this.__coinsHudCreated = true;
+    createMenuCoinsHud(this);
+  }
+};
+
+// Também recria o HUD quando a cena "acorda" (após ser pausada)
+const originalMenuWake = TelaInicial.prototype.wake || function() {};
+TelaInicial.prototype.wake = function patchedMenuWake(...args) {
+  if (originalMenuWake) originalMenuWake.apply(this, args);
+  // Permitir que o HUD seja recriado se foi destruído
   if (!this.__coinsHudCreated) {
     this.__coinsHudCreated = true;
     createMenuCoinsHud(this);
