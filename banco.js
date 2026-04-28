@@ -5,6 +5,8 @@ const COINS_STORAGE_KEY = "spaceWarCoins";
 const COIN_TEXTURE_KEY = "coinIcon";
 const TEST_MODE = false;
 const TEST_MODE_COINS = 10000;
+const COINS_STORAGE_VERSION = "v1";
+const COINS_VERSION_KEY = "spaceWarCoinsVersion";
 
 let fallbackCoins = 0;
 let lastRewardAmount = 0;
@@ -24,6 +26,23 @@ function normalizeCoins(value) {
 function getCoins() {
   if (TEST_MODE) return TEST_MODE_COINS;
   if (!canUseStorage()) return fallbackCoins;
+  
+  // Verificar versão e limpar se necessário
+  let storedVersion = null;
+  try {
+    storedVersion = window.localStorage.getItem(COINS_VERSION_KEY);
+  } catch {
+    return fallbackCoins;
+  }
+  
+  if (storedVersion !== COINS_STORAGE_VERSION) {
+    try {
+      window.localStorage.removeItem(COINS_STORAGE_KEY);
+      window.localStorage.setItem(COINS_VERSION_KEY, COINS_STORAGE_VERSION);
+    } catch {}
+    return 0;
+  }
+  
   let stored = null;
   try {
     stored = window.localStorage.getItem(COINS_STORAGE_KEY);
@@ -39,6 +58,7 @@ function setCoins(value) {
   if (canUseStorage()) {
     try {
       window.localStorage.setItem(COINS_STORAGE_KEY, String(normalized));
+      window.localStorage.setItem(COINS_VERSION_KEY, COINS_STORAGE_VERSION);
     } catch {
       fallbackCoins = normalized;
     }

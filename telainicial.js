@@ -47,10 +47,7 @@ class TelaInicial extends Phaser.Scene {
       fillColor: 0x0f0f0f,
       hoverColor: 0x1b1b1b,
       onClick: () => {
-        if (this.menuMusic && this.menuMusic.isPlaying) {
-          this.menuMusic.stop();
-        }
-        this.scene.start("tutorial");
+        this.scene.launch("tutorial");
       },
     });
 

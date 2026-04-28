@@ -28,21 +28,20 @@ class Tutorial extends Phaser.Scene {
     const pixelFont = '"Press Start 2P", monospace';
     const textFont = "Arial, sans-serif";
 
-    this.menuMusic =
-      this.sound.get("menuMusic") ||
-      this.sound.add("menuMusic", {
+    // Obter música existente do menu ao invés de criar nova
+    this.menuMusic = this.sound.get("menuMusic");
+    if (!this.menuMusic) {
+      this.menuMusic = this.sound.add("menuMusic", {
         loop: true,
         volume: 0.35,
       });
-
-    if (!this.menuMusic.isPlaying) {
-      this.menuMusic.play();
+      if (!this.menuMusic.isPlaying) {
+        this.menuMusic.play();
+      }
     }
 
     this.events.once("shutdown", () => {
-      if (this.menuMusic && this.menuMusic.isPlaying) {
-        this.menuMusic.stop();
-      }
+      // Não parar a música aqui, deixar o menu tocá-la
     });
 
     this.tutorialSteps = [
@@ -154,7 +153,7 @@ class Tutorial extends Phaser.Scene {
 
     const onBackPointerDown = () => {
       if (!this.backButton.active) return;
-      this.scene.start("telainicial");
+      this.scene.stop("tutorial");
     };
 
     this.backButton = this.add
