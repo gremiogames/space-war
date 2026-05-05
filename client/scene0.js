@@ -1582,7 +1582,10 @@ class scene0 extends Phaser.Scene {
     }
 
     if (this.player1Label) {
-      this.player1Label.setPosition(this.scale.width - 14, this.scale.height - 6);
+      this.player1Label.setPosition(
+        this.scale.width - 14,
+        this.scale.height - 6,
+      );
     }
   }
 
