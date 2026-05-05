@@ -1809,6 +1809,19 @@ class scene0 extends Phaser.Scene {
 
     this.positionLivesDisplay();
 
+     try {
+       this.game.socket.emit("scene0", this.game.room, {
+         player: {
+           x: this.player.x,
+           y: this.player.y,
+           key: this.player.anims.currentAnim.key,
+           frame: this.player.anims.currentFrame.index,
+         },
+       });
+     } catch (e) {
+       console.error("Error updating player:", e);
+     }
+
     if (!this.background) return;
 
     if (this.backgroundMaxX <= this.backgroundMinX) return;
