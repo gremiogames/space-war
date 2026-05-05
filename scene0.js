@@ -64,7 +64,7 @@ class scene0 extends Phaser.Scene {
       to3sAtRound: 7,
       to2sAtRound: 16,
       to1sAtRound: 28,
-      toExact1sAtRound: 37,
+      toExact1sAtRound: 36,
     };
     this.mapSpeedByPhase = {
       phase5s: 0.29,
