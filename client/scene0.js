@@ -86,6 +86,8 @@ class scene0 extends Phaser.Scene {
     this.botShieldActive = false;
     this.botShieldTimerEvent = null;
     this.botAmmoText = null;
+    this.player1Label = null;
+    this.player2Label = null;
     this.fullReloadSfx = null;
     this.shieldSfx = null;
     this.explosionSfx = null;
@@ -634,12 +636,35 @@ class scene0 extends Phaser.Scene {
         fontFamily: this.uiFontFamily,
         fill: "#ffcc66",
         fontStyle: "bold",
-        backgroundColor: "#000000",
+        backgroundColor: "rgba(0,0,0,0.5)",
         padding: { x: 6, y: 3 },
       })
       .setOrigin(0, 0)
-      .setAlpha(0.9)
+      .setAlpha(1)
       .setDepth(40);
+
+    // Labels dos jogadores (visíveis na HUD)
+    this.player2Label = this.add
+      .text(this.scale.width - 14, 6, "Player 2", {
+        fontSize: "14px",
+        fontFamily: this.uiFontFamily,
+        color: "#ff4444",
+        fontStyle: "bold",
+        backgroundColor: "rgba(0,0,0,0)",
+      })
+      .setOrigin(1, 0)
+      .setDepth(50);
+
+    this.player1Label = this.add
+      .text(this.scale.width - 14, this.scale.height - 6, "Player 1", {
+        fontSize: "14px",
+        fontFamily: this.uiFontFamily,
+        color: "#ff4444",
+        fontStyle: "bold",
+        backgroundColor: "rgba(0,0,0,0)",
+      })
+      .setOrigin(1, 1)
+      .setDepth(50);
 
     this.victoryText = this.add
       .text(this.cameras.main.centerX, this.cameras.main.centerY, "", {
@@ -1549,6 +1574,15 @@ class scene0 extends Phaser.Scene {
 
     if (this.botAmmoText) {
       this.botAmmoText.setPosition(p2StartX - 10, p2Y + 22);
+    }
+
+    // Reposiciona labels dos jogadores quando a HUD é recalculada
+    if (this.player2Label) {
+      this.player2Label.setPosition(this.scale.width - 14, 6);
+    }
+
+    if (this.player1Label) {
+      this.player1Label.setPosition(this.scale.width - 14, this.scale.height - 6);
     }
   }
 

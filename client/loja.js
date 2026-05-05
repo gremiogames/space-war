@@ -828,7 +828,6 @@ function openStoreModal(scene) {
   };
 
   closeButton.on("pointerdown", closeModal);
-  overlay.on("pointerdown", closeModal);
 
   if (typeof window !== "undefined") {
     window.addEventListener("space-war-coins-updated", refresh);
