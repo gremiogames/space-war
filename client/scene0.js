@@ -636,7 +636,7 @@ class scene0 extends Phaser.Scene {
         fontFamily: this.uiFontFamily,
         fill: "#ffcc66",
         fontStyle: "bold",
-        backgroundColor: "rgba(0,0,0,0.5)",
+        backgroundColor: "rgba(0,0,0,0.2)",
         padding: { x: 6, y: 3 },
       })
       .setOrigin(0, 0)
@@ -659,7 +659,7 @@ class scene0 extends Phaser.Scene {
       .text(this.scale.width - 14, this.scale.height - 6, "Player 1", {
         fontSize: "14px",
         fontFamily: this.uiFontFamily,
-        color: "#ff4444",
+        color: "#ADD8E6",
         fontStyle: "bold",
         backgroundColor: "rgba(0,0,0,0)",
       })
@@ -1809,19 +1809,22 @@ class scene0 extends Phaser.Scene {
 
     this.positionLivesDisplay();
 
-     try {
-       this.game.socket.emit("scene0", this.game.room, {
-         player: {
-           x: this.player.x,
-           y: this.player.y,
-           key: this.player.anims.currentAnim.key,
-           frame: this.player.anims.currentFrame.index,
-         },
-       });
-     } catch (e) {
-       console.error("Error updating player:", e);
-     }
-
+    try {
+      this.game.socket.emit("scene0", this.game.room, {
+        player: {
+          id: this.game.socket.id,
+          x: this.player.x,
+          y: this.player.y,
+          texture: "character",
+          animation: this.player.anims.currentAnim
+            ? this.player.anims.currentAnim.key
+            : "standing-still",
+          frame: this.player.anims.currentFrame.index,
+        },
+      });
+    } catch (e) {
+      console.error("Error updating player:", e);
+    }
     if (!this.background) return;
 
     if (this.backgroundMaxX <= this.backgroundMinX) return;
