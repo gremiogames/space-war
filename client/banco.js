@@ -91,7 +91,7 @@ function addCoins(amount) {
 }
 
 function calculateVictoryReward(roundCount = 0) {
-  if (roundCount >= 35) {
+  if (roundCount < 12 || roundCount >= 35) {
     return randomInt(60, 70);
   }
   if (roundCount >= 17) {

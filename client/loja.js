@@ -126,7 +126,7 @@ const SHIPS = [
     id: "fragata-neon",
     name: "Troféu do General",
     description: "Espaçonave marciana do General Et. Bilu",
-    price: 700,
+    price: 800,
     textureKey: "ship-fragata-neon",
     assetPath: "assets/Alien-Frigate(3).png",
     frameWidth: 110,

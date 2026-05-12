@@ -1810,16 +1810,24 @@ class scene0 extends Phaser.Scene {
     this.positionLivesDisplay();
 
     try {
+      const equippedShip = window.LojaNaves?.getEquippedShip?.();
       this.game.socket.emit("scene0", this.game.room, {
         player: {
           id: this.game.socket.id,
           x: this.player.x,
           y: this.player.y,
-          texture: "character",
-          animation: this.player.anims.currentAnim
-            ? this.player.anims.currentAnim.key
-            : "standing-still",
-          frame: this.player.anims.currentFrame.index,
+          ship: equippedShip
+            ? {
+                textureKey: equippedShip.textureKey,
+                frameKey: equippedShip.frameKey,
+                playerScale: equippedShip.playerScale,
+                flipYForPlayer1: equippedShip.flipYForPlayer1,
+                tint: equippedShip.tint,
+              }
+            : null,
+         shieldActive: this.shieldActive,
+         shotsLoaded: this.shotsLoaded,
+         lives: this.player1Lives,
         },
       });
     } catch (e) {
