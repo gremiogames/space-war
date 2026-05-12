@@ -99,6 +99,13 @@ class scene0 extends Phaser.Scene {
     this.returnToMenuScheduled = false;
     this.roundCountdownEvent = null;
     this.onShipsUpdated = null;
+    this.onRemoteScene0State = null;
+    this.onRemoteScene0Action = null;
+    this.remoteOpponentY = 58;
+    this.remotePlayerState = null;
+    this.remotePlayerSeen = false;
+    this.remoteSelectedAction = null;
+    this.remoteSelectedActionRound = null;
     this.rewardText = null;
     this.rewardCoinIcon = null;
   }
@@ -194,6 +201,122 @@ class scene0 extends Phaser.Scene {
         y: offset.y,
       })),
     };
+  }
+
+  applyRemoteOpponentState(remoteState) {
+    const remotePlayer = remoteState?.player || remoteState;
+    if (!remotePlayer || !this.player2 || !this.botTiro) return;
+
+    if (this.game?.socket?.id && remotePlayer.id === this.game.socket.id) {
+      return;
+    }
+
+    this.remotePlayerSeen = true;
+    this.remotePlayerState = remotePlayer;
+
+    if (remotePlayer.selectedAction) {
+      this.remoteSelectedAction = remotePlayer.selectedAction;
+      this.remoteSelectedActionRound = Number.isFinite(remotePlayer.roundCount)
+        ? remotePlayer.roundCount
+        : this.roundCount;
+      this.botSelectedAction = this.remoteSelectedAction;
+    }
+
+    if (Number.isFinite(remotePlayer.shotsLoaded)) {
+      this.botShotsLoaded = remotePlayer.shotsLoaded;
+    }
+
+    const opponentX = Number.isFinite(remotePlayer.x) ? remotePlayer.x : this.player2.x;
+    this.player2.setX(opponentX).setY(this.remoteOpponentY);
+
+    if (remotePlayer.ship && this.textures.exists(remotePlayer.ship.textureKey)) {
+      const ship = remotePlayer.ship;
+
+      if (ship.frameRect && ship.frameKey) {
+        const texture = this.textures.get(ship.textureKey);
+        if (texture && !texture.has(ship.frameKey)) {
+          texture.add(
+            ship.frameKey,
+            0,
+            ship.frameRect.x,
+            ship.frameRect.y,
+            ship.frameRect.w,
+            ship.frameRect.h,
+          );
+        }
+      }
+
+      const frame = ship.frameKey || 0;
+      this.player2.setTexture(ship.textureKey, frame);
+
+      if (ship.playerScale) {
+        this.player2.setScale(ship.playerScale);
+      }
+
+      this.player2.setFlipY(!Boolean(ship.flipYForPlayer1));
+
+      if (ship.tint && ship.tint !== 0xffffff) {
+        this.player2.setTint(ship.tint);
+      } else {
+        this.player2.clearTint();
+      }
+    }
+
+    const remoteLives = Number.isFinite(remotePlayer.lives)
+      ? remotePlayer.lives
+      : this.player2Lives;
+    const remoteShotsLoaded = Number.isFinite(remotePlayer.shotsLoaded)
+      ? remotePlayer.shotsLoaded
+      : this.botShotsLoaded;
+
+    this.player2Lives = remoteLives;
+    this.botShotsLoaded = remoteShotsLoaded;
+    this.botShieldActive = Boolean(remotePlayer.shieldActive);
+
+    if (this.botShield) {
+      this.botShield.setPosition(this.player2.x, this.player2.y + 54);
+      this.botShield.setVisible(this.botShieldActive);
+      this.botShield.setAlpha(1);
+    }
+
+    const remoteShot = remotePlayer.shot || null;
+    if (remoteShot && remoteShot.active) {
+      const remoteShotStartY = Number.isFinite(remoteShot.startY)
+        ? remoteShot.startY
+        : this.player.y - 80;
+      const remoteShotEndY = Number.isFinite(remoteShot.endY)
+        ? remoteShot.endY
+        : -30;
+      const totalDistance = remoteShotStartY - remoteShotEndY || 1;
+      const progress = Phaser.Math.Clamp(
+        (remoteShotStartY - remoteShot.y) / totalDistance,
+        0,
+        1,
+      );
+
+      const botShotStartY = this.player2.y + 80;
+      const botShotEndY = this.scale.height + 30;
+      const botShotY = botShotStartY + (botShotEndY - botShotStartY) * progress;
+
+      this.botTiro.setPosition(this.player2.x, botShotY).setVisible(true);
+      this.botTiro.body.setVelocity(0, 500);
+
+      if (this.botTiroTween) {
+        this.botTiroTween.stop();
+        this.botTiroTween = null;
+      }
+    } else {
+      this.botTiro.body.setVelocity(0, 0);
+      this.botTiro.setVisible(false);
+
+      if (this.botTiroTween) {
+        this.botTiroTween.stop();
+        this.botTiroTween = null;
+      }
+    }
+
+    this.updateBotAmmoDisplay();
+    this.updateLivesDisplay();
   }
 
   applyReloadEffectStyle(orbs, config) {
@@ -313,6 +436,8 @@ class scene0 extends Phaser.Scene {
     this.botSelectedAction = null;
     this.shieldActive = false;
     this.botShieldActive = false;
+    this.remotePlayerSeen = false;
+    this.remotePlayerState = null;
     this.__coinsRewardGranted = false;
 
     if (this.shieldTimerEvent) {
@@ -403,6 +528,16 @@ class scene0 extends Phaser.Scene {
         this.botShieldTimerEvent = null;
       }
 
+      if (this.game?.socket && this.onRemoteScene0State) {
+        this.game.socket.off("scene0", this.onRemoteScene0State);
+        this.onRemoteScene0State = null;
+      }
+
+      if (this.game?.socket && this.onRemoteScene0Action) {
+        this.game.socket.off("scene0-action", this.onRemoteScene0Action);
+        this.onRemoteScene0Action = null;
+      }
+
       if (this.returnToMenuEvent) {
         this.returnToMenuEvent.remove(false);
         this.returnToMenuEvent = null;
@@ -448,6 +583,51 @@ class scene0 extends Phaser.Scene {
     this.player2.body.setAllowGravity(false);
     this.applyStoreShipToPlayer();
     this.refreshReloadEffectConfigs();
+
+    if (this.game?.socket && !this.onRemoteScene0State) {
+      this.onRemoteScene0State = (remoteState) => {
+        if (!this.scene || !this.scene.isActive()) return;
+        this.applyRemoteOpponentState(remoteState);
+      };
+      this.game.socket.on("scene0", this.onRemoteScene0State);
+    }
+
+    if (this.game?.socket && !this.onRemoteScene0Action) {
+      this.onRemoteScene0Action = (remoteAction) => {
+        if (!this.scene || !this.scene.isActive() || this.gameOver) return;
+
+        const actionPlayer = remoteAction?.player || remoteAction;
+        if (!actionPlayer || actionPlayer.id === this.game?.socket?.id) {
+          return;
+        }
+
+        this.remotePlayerSeen = true;
+        this.remoteSelectedAction = actionPlayer.selectedAction || null;
+        this.remoteSelectedActionRound = Number.isFinite(actionPlayer.roundCount)
+          ? actionPlayer.roundCount
+          : this.roundCount;
+
+        if (Number.isFinite(actionPlayer.shotsLoaded)) {
+          this.botShotsLoaded = actionPlayer.shotsLoaded;
+          this.updateBotAmmoDisplay();
+        }
+
+        if (Number.isFinite(actionPlayer.lives)) {
+          this.player2Lives = actionPlayer.lives;
+          this.updateLivesDisplay();
+        }
+
+        if (typeof actionPlayer.shieldActive === "boolean") {
+          this.botShieldActive = actionPlayer.shieldActive;
+          if (this.botShield) {
+            this.botShield.setVisible(this.botShieldActive);
+          }
+        }
+
+        this.botSelectedAction = this.remoteSelectedAction;
+      };
+      this.game.socket.on("scene0-action", this.onRemoteScene0Action);
+    }
 
     if (typeof window !== "undefined") {
       if (!this.onShipsUpdated) {
@@ -686,6 +866,19 @@ class scene0 extends Phaser.Scene {
       this.selectedAction = "shoot";
       this.actionExecuted = true;
 
+      if (this.game?.isOnlineMode && this.game?.socket?.connected) {
+        this.game.socket.emit("scene0-action", this.game.room, {
+          player: {
+            id: this.game.socket.id,
+            roundCount: this.roundCount,
+            selectedAction: this.selectedAction,
+            shotsLoaded: this.shotsLoaded,
+            lives: this.player1Lives,
+            shieldActive: this.shieldActive,
+          },
+        });
+      }
+
       // Desabilita todos os botões até o próximo round
       this.disableAllButtons(true);
     });
@@ -697,6 +890,19 @@ class scene0 extends Phaser.Scene {
       this.selectedAction = "reload";
       this.actionExecuted = true;
 
+      if (this.game?.isOnlineMode && this.game?.socket?.connected) {
+        this.game.socket.emit("scene0-action", this.game.room, {
+          player: {
+            id: this.game.socket.id,
+            roundCount: this.roundCount,
+            selectedAction: this.selectedAction,
+            shotsLoaded: this.shotsLoaded,
+            lives: this.player1Lives,
+            shieldActive: this.shieldActive,
+          },
+        });
+      }
+
       // Desabilita todos os botões até o próximo round
       this.disableAllButtons(true);
     });
@@ -707,6 +913,19 @@ class scene0 extends Phaser.Scene {
 
       this.selectedAction = "armor";
       this.actionExecuted = true;
+
+      if (this.game?.isOnlineMode && this.game?.socket?.connected) {
+        this.game.socket.emit("scene0-action", this.game.room, {
+          player: {
+            id: this.game.socket.id,
+            roundCount: this.roundCount,
+            selectedAction: this.selectedAction,
+            shotsLoaded: this.shotsLoaded,
+            lives: this.player1Lives,
+            shieldActive: this.shieldActive,
+          },
+        });
+      }
 
       // Desabilita todos os botões até o próximo round
       this.disableAllButtons(true);
@@ -771,7 +990,9 @@ class scene0 extends Phaser.Scene {
       this.botShieldTimerEvent = null;
     }
     this.botShieldActive = false;
-    this.botShield.setAlpha(1).setVisible(false);
+    if (!this.remotePlayerSeen) {
+      this.botShield.setAlpha(1).setVisible(false);
+    }
     this.updateReloadEffectPositions();
     [...this.playerReloadOrbs, ...this.botReloadOrbs].forEach((orb) => {
       if (orb) {
@@ -782,12 +1003,21 @@ class scene0 extends Phaser.Scene {
     // Reseta o estado para permitir nova ação
     this.actionExecuted = false;
     this.selectedAction = null;
-    this.botSelectedAction = this.botController.chooseAction({
-      botShotsLoaded: this.botShotsLoaded,
-      playerShotsLoaded: this.shotsLoaded,
-      playerShieldActive: this.shieldActive,
-      botShieldActive: this.botShieldActive,
-    });
+    if (!this.remotePlayerSeen) {
+      this.botSelectedAction = this.botController.chooseAction({
+        botShotsLoaded: this.botShotsLoaded,
+        playerShotsLoaded: this.shotsLoaded,
+        playerShieldActive: this.shieldActive,
+        botShieldActive: this.botShieldActive,
+      });
+    } else if (
+      this.remoteSelectedActionRound === this.roundCount &&
+      this.remoteSelectedAction
+    ) {
+      this.botSelectedAction = this.remoteSelectedAction;
+    } else {
+      this.botSelectedAction = null;
+    }
 
     // Habilita todos os botões
     this.enableAllButtons();
@@ -1805,31 +2035,50 @@ class scene0 extends Phaser.Scene {
       this.botShield.setPosition(this.player2.x, this.player2.y + 54);
     }
 
+    if (this.remotePlayerSeen && this.remotePlayerState) {
+      this.applyRemoteOpponentState(this.remotePlayerState);
+    }
+
     this.updateReloadEffectPositions();
 
     this.positionLivesDisplay();
 
     try {
-      const equippedShip = window.LojaNaves?.getEquippedShip?.();
-      this.game.socket.emit("scene0", this.game.room, {
-        player: {
-          id: this.game.socket.id,
-          x: this.player.x,
-          y: this.player.y,
-          ship: equippedShip
-            ? {
-                textureKey: equippedShip.textureKey,
-                frameKey: equippedShip.frameKey,
-                playerScale: equippedShip.playerScale,
-                flipYForPlayer1: equippedShip.flipYForPlayer1,
-                tint: equippedShip.tint,
-              }
-            : null,
-         shieldActive: this.shieldActive,
-         shotsLoaded: this.shotsLoaded,
-         lives: this.player1Lives,
-        },
-      });
+      if (this.game?.isOnlineMode) {
+        const equippedShip = window.LojaNaves?.getEquippedShip?.();
+        const localShot = this.tiro && this.tiro.visible
+          ? {
+              active: true,
+              x: this.tiro.x,
+              y: this.tiro.y,
+              startY: this.player.y - 80,
+              endY: -30,
+            }
+          : { active: false };
+
+        this.game.socket.emit("scene0", this.game.room, {
+          player: {
+            id: this.game.socket.id,
+            x: this.player.x,
+            y: this.player.y,
+            roundCount: this.roundCount,
+            ship: equippedShip
+              ? {
+                  textureKey: equippedShip.textureKey,
+                  frameKey: equippedShip.frameKey,
+                  playerScale: equippedShip.playerScale,
+                  flipYForPlayer1: equippedShip.flipYForPlayer1,
+                  tint: equippedShip.tint,
+                }
+              : null,
+            shieldActive: this.shieldActive,
+            shotsLoaded: this.shotsLoaded,
+            lives: this.player1Lives,
+            selectedAction: this.selectedAction,
+            shot: localShot,
+          },
+        });
+      }
     } catch (e) {
       console.error("Error updating player:", e);
     }

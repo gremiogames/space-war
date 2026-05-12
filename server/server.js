@@ -24,6 +24,10 @@ io.on("connection", (socket) => {
     socket.to(room).emit("scene0", { ...state });
   });
 
+  socket.on("scene0-action", (room, action) => {
+    socket.to(room).emit("scene0-action", { ...action });
+  });
+
   socket.on("disconnect", () => {
     console.log("User disconnected:", socket.id);
   });

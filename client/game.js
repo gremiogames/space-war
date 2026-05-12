@@ -9,6 +9,10 @@ class Game extends Phaser.Game {
   constructor() {
     super(config);
 
+    this.room = "0";
+    this.isOnlineMode = false;
+    this.pendingOnlineJoin = false;
+
     this.scene.add("telainicial", TelaInicial);
     this.scene.add("tutorial", tutorial);
     this.scene.add("scene0", scene0);
@@ -22,12 +26,30 @@ class Game extends Phaser.Game {
       this.socket = io();
     }
 
-    this.room = "0";
     this.socket.on("connect", () => {
       console.log("Socket ID:", this.socket.id);
 
-      this.socket.emit("join-room", this.room);
+      if (this.pendingOnlineJoin) {
+        this.socket.emit("join-room", this.room);
+        this.pendingOnlineJoin = false;
+      }
     });
+  }
+
+  enableOnlineMode(room = "0") {
+    this.room = room;
+    this.isOnlineMode = true;
+    this.pendingOnlineJoin = true;
+
+    if (this.socket?.connected) {
+      this.socket.emit("join-room", this.room);
+      this.pendingOnlineJoin = false;
+    }
+  }
+
+  enableOfflineMode() {
+    this.isOnlineMode = false;
+    this.pendingOnlineJoin = false;
   }
 }
 

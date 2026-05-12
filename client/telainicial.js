@@ -58,6 +58,7 @@ class TelaInicial extends Phaser.Scene {
       fillColor: 0x0f0f0f,
       hoverColor: 0x1b1b1b,
       onClick: () => {
+        window.game?.enableOfflineMode?.();
         if (this.menuMusic && this.menuMusic.isPlaying) {
           this.menuMusic.stop();
         }
@@ -72,7 +73,12 @@ class TelaInicial extends Phaser.Scene {
       fillColor: 0x0f0f0f,
       hoverColor: 0x1b1b1b,
       onClick: () => {
-        this.statusText.setText("Modo online em breve").setVisible(true);
+        window.game?.enableOnlineMode?.("0");
+        if (this.menuMusic && this.menuMusic.isPlaying) {
+          this.menuMusic.stop();
+        }
+        this.statusText.setText("Conectando ao online...").setVisible(true);
+        this.scene.start("scene0");
       },
     });
 
