@@ -226,10 +226,15 @@ class scene0 extends Phaser.Scene {
       this.botShotsLoaded = remotePlayer.shotsLoaded;
     }
 
-    const opponentX = Number.isFinite(remotePlayer.x) ? remotePlayer.x : this.player2.x;
+    const opponentX = Number.isFinite(remotePlayer.x)
+      ? remotePlayer.x
+      : this.player2.x;
     this.player2.setX(opponentX).setY(this.remoteOpponentY);
 
-    if (remotePlayer.ship && this.textures.exists(remotePlayer.ship.textureKey)) {
+    if (
+      remotePlayer.ship &&
+      this.textures.exists(remotePlayer.ship.textureKey)
+    ) {
       const ship = remotePlayer.ship;
 
       if (ship.frameRect && ship.frameKey) {
@@ -603,7 +608,9 @@ class scene0 extends Phaser.Scene {
 
         this.remotePlayerSeen = true;
         this.remoteSelectedAction = actionPlayer.selectedAction || null;
-        this.remoteSelectedActionRound = Number.isFinite(actionPlayer.roundCount)
+        this.remoteSelectedActionRound = Number.isFinite(
+          actionPlayer.roundCount,
+        )
           ? actionPlayer.roundCount
           : this.roundCount;
 
@@ -2046,15 +2053,16 @@ class scene0 extends Phaser.Scene {
     try {
       if (this.game?.isOnlineMode) {
         const equippedShip = window.LojaNaves?.getEquippedShip?.();
-        const localShot = this.tiro && this.tiro.visible
-          ? {
-              active: true,
-              x: this.tiro.x,
-              y: this.tiro.y,
-              startY: this.player.y - 80,
-              endY: -30,
-            }
-          : { active: false };
+        const localShot =
+          this.tiro && this.tiro.visible
+            ? {
+                active: true,
+                x: this.tiro.x,
+                y: this.tiro.y,
+                startY: this.player.y - 80,
+                endY: -30,
+              }
+            : { active: false };
 
         this.game.socket.emit("scene0", this.game.room, {
           player: {
