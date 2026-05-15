@@ -9,14 +9,13 @@ class Game extends Phaser.Game {
   constructor() {
     super(config);
 
-    this.scene.add("start", start);
+    this.scene.add("telainicial", TelaInicial);
     this.scene.add("preloader", preloader);
     this.scene.add("room", room);
     this.scene.add("player", player);
-    this.scene.add("telainicial", TelaInicial);
     this.scene.add("tutorial", tutorial);
     this.scene.add("scene0", scene0);
-    this.scene.start("start");
+    this.scene.start("telainicial");
 
     if (location.hostname.match(/localhost|127\.0\.0\.1/)) {
       this.socket = io("http://localhost:3000");

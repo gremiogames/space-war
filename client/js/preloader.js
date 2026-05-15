@@ -19,38 +19,47 @@ class preloader extends Phaser.Scene {
 
     this.load.font("pixelify-sans", "pixelify-sans.ttf");
 
-    this.load.image("room-brackground", "room-background.png");
+    this.load.image("room-background", "room-background.png");
 
-    this.load.tilemapTiledJSON("map", "map.json");
-    this.load.spritesheet("android", "SpaceStation_Android_Sheet.png", {
-      frameWidth: 32,
-      frameHeight: 32,
+    this.load.image("backgroundMap", "Mapa3.png");
+    this.load.spritesheet("player1", "player_b_m.png", {
+      frameWidth: 64,
+      frameHeight: 64,
     });
-    this.load.spritesheet("character", "SpaceStation_Character_Sheet.png", {
-      frameWidth: 32,
-      frameHeight: 32,
+    this.load.spritesheet("player2", "Alien-Frigrate(3).png", {
+      frameWidth: 64,
+      frameHeight: 64,
     });
-    this.load.image("objects", "SpaceStation_Objects.png");
-    this.load.spritesheet("projectiles", "SpaceStation_Projectiles_Sheet.png", {
-      frameWidth: 16,
-      frameHeight: 16,
-    });
-    this.load.image("tileset", "SpaceStation_Tileset.png");
-    this.load.spritesheet("turret", "SpaceStation_Turret_Sheet.png", {
-      frameWidth: 32,
-      frameHeight: 32,
-    });
-    this.load.spritesheet("buttons", "buttons.png", {
-      frameWidth: 32,
-      frameHeight: 32,
-    });
-    this.load.audio("music", "music.mp3");
-    this.load.audio("laser", "laser.mp3");
-    this.load.plugin(
-      "rexvirtualjoystickplugin",
-      "../js/rexvirtualjoystickplugin.min.js",
-      true,
+       this.load.spritesheet("shotbutton", "assets/Enemy_Destroy_Bonus.png", {
+      frameWidth: 300,
+      frameHeight: 300,
+       });
+    
+     this.load.image("armorButton", "assets/Armor_Bonus.png");
+
+    this.load.image("reloadButton", "assets/Damage_Bonus.png");
+
+    this.load.image("shield", "assets/spr_shield.png");
+    this.load.image("heart", "assets/HEART 1.png");
+
+    this.load.image("sheet", "assets/map-assets/spritesheet.png");
+    this.load.atlasXML(
+      "sheetAtlas",
+      "assets/map-assets/spritesheet.png",
+      "assets/map-assets/spritesheet.xml",
     );
+
+    this.load.audio("laser", "assets/efeitolaser.mp3");
+    this.load.audio("fullReload", "assets/reloadcharge.mp3");
+    this.load.audio(
+      "shieldSfx",
+      "assets/freesound_community-analog-lazer-fx-87122.mp3",
+    );
+    this.load.audio("explosionSfx", "assets/explosao.mp3");
+    this.load.audio("laserExplosionSfx", "assets/laserexplosao.mp3");
+    this.load.audio("laserBarrierSfx", "assets/laserbarrier.mp3");
+    this.load.audio("losingLifeSfx", "assets/losinglife.mp3");
+    this.load.audio("gameMusic", "assets/musicajogo.mp3");
   }
 
   create() {
