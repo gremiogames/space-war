@@ -107,6 +107,17 @@ class scene0 extends Phaser.Scene {
     this.rewardCoinIcon = null;
     this.botEnabled = false;
     this.scene0StateListener = null;
+    this.lastScene0SyncAt = 0;
+    this.scene0SyncIntervalMs = 50;
+    this.scene0HeartbeatMs = 250;
+    this.lastScene0StateSignature = "";
+    this.scene0MatchStartListener = null;
+    this.serverClockOffsetMs = 0;
+    this.serverClockSamples = 0;
+    this.roundPhase = "waiting";
+    this.roundPhaseEndsAtMs = 0;
+    this.matchStartedAtMs = 0;
+    this.scene0ReadyRetryEvent = null;
   }
 
   applyStoreShipToPlayer() {
@@ -187,7 +198,133 @@ class scene0 extends Phaser.Scene {
       this.botEnabled = true;
     }
 
+    if (remotePlayer.roundPhase && remotePlayer.roundPhaseEndsAtMs) {
+      this.maybeResyncRoundState(remotePlayer);
+    }
+
     this.updateReloadEffectPositions();
+  }
+
+  getSyncedNowMs() {
+    return Date.now() + this.serverClockOffsetMs;
+  }
+
+  syncServerClock(serverTime) {
+    if (typeof serverTime !== "number") return;
+
+    const sampleOffset = serverTime - Date.now();
+    if (this.serverClockSamples === 0) {
+      this.serverClockOffsetMs = sampleOffset;
+    } else {
+      this.serverClockOffsetMs =
+        this.serverClockOffsetMs * 0.9 + sampleOffset * 0.1;
+    }
+
+    this.serverClockSamples += 1;
+  }
+
+  getRoundPhaseOrder(phase) {
+    if (phase === "prepare") return 1;
+    if (phase === "countdown") return 2;
+    if (phase === "action") return 3;
+    if (phase === "gap") return 4;
+    return 0;
+  }
+
+  maybeResyncRoundState(remotePlayer) {
+    const remoteRound = remotePlayer.roundCount;
+    const remotePhase = remotePlayer.roundPhase;
+    const remoteEndsAt = remotePlayer.roundPhaseEndsAtMs;
+
+    if (typeof remoteRound !== "number") return;
+    if (typeof remotePhase !== "string") return;
+    if (typeof remoteEndsAt !== "number") return;
+
+    const localPhaseOrder = this.getRoundPhaseOrder(this.roundPhase);
+    const remotePhaseOrder = this.getRoundPhaseOrder(remotePhase);
+    const endDiff = Math.abs(remoteEndsAt - this.roundPhaseEndsAtMs);
+
+    const roundBehind = remoteRound > this.roundCount;
+    const phaseBehind =
+      remoteRound === this.roundCount && remotePhaseOrder > localPhaseOrder;
+    const heavyDrift = endDiff > 220;
+
+    if (roundBehind || phaseBehind || heavyDrift) {
+      this.roundCount = remoteRound;
+      this.roundPhase = remotePhase;
+      this.roundPhaseEndsAtMs = remoteEndsAt;
+    }
+  }
+
+  buildLocalScene0State() {
+    const equippedShip = window.LojaNaves?.getEquippedShip?.();
+
+    return {
+      player: {
+        id: this.game.socket.id,
+        x: this.player.x,
+        y: this.player.y,
+        ship: equippedShip
+          ? {
+              textureKey: equippedShip.textureKey,
+              frameKey: equippedShip.frameKey,
+              playerScale: equippedShip.playerScale,
+              flipYForPlayer1: equippedShip.flipYForPlayer1,
+              tint: equippedShip.tint,
+            }
+          : null,
+        shieldActive: this.shieldActive,
+        shotsLoaded: this.shotsLoaded,
+        lives: this.player1Lives,
+        selectedAction: this.selectedAction,
+        roundCount: this.roundCount,
+        roundPhase: this.roundPhase,
+        roundPhaseEndsAtMs: this.roundPhaseEndsAtMs,
+      },
+    };
+  }
+
+  getScene0StateSignature(state) {
+    const playerState = state?.player || {};
+    const ship = playerState.ship || {};
+
+    return [
+      playerState.x,
+      playerState.y,
+      playerState.shieldActive,
+      playerState.shotsLoaded,
+      playerState.lives,
+      playerState.selectedAction,
+      playerState.roundCount,
+      playerState.roundPhase,
+      playerState.roundPhaseEndsAtMs,
+      ship.textureKey,
+      ship.frameKey,
+      ship.playerScale,
+      ship.flipYForPlayer1,
+      ship.tint,
+    ].join("|");
+  }
+
+  emitScene0State(force = false) {
+    if (!this.game?.socket || !this.game.room || !this.player) return;
+
+    const now = this.time?.now ?? performance.now();
+    const state = this.buildLocalScene0State();
+    const signature = this.getScene0StateSignature(state);
+    const hasChanged = signature !== this.lastScene0StateSignature;
+    const elapsed = now - this.lastScene0SyncAt;
+    const requiredInterval = hasChanged
+      ? this.scene0SyncIntervalMs
+      : this.scene0HeartbeatMs;
+
+    if (!force && elapsed < requiredInterval) return;
+
+    const emitter = this.game.socket.volatile || this.game.socket;
+    emitter.emit("scene0", this.game.room, state);
+
+    this.lastScene0SyncAt = now;
+    this.lastScene0StateSignature = signature;
   }
 
   getReloadEffectConfigForShip(
@@ -294,6 +431,163 @@ class scene0 extends Phaser.Scene {
     } else {
       this.backgroundSpeed = this.mapSpeedByPhase.phase4s;
     }
+  }
+
+  beginPreparePhase(nowMs) {
+    this.roundPhase = "prepare";
+    this.roundPhaseEndsAtMs = nowMs + 1000;
+    this.roundActive = false;
+    this.disableAllButtons(true);
+    this.countdownText.setText("Preparar...");
+    this.countdownText.setFill("#00ff00");
+    this.countdownText.setFontSize(this.countdownMessageSize);
+  }
+
+  beginCountdownPhase(nowMs) {
+    if (this.gameOver) return;
+
+    this.roundCount += 1;
+    this.updateBackgroundSpeedForRound();
+
+    if (this.shieldTimerEvent) {
+      this.shieldTimerEvent.remove(false);
+      this.shieldTimerEvent = null;
+    }
+    this.shieldActive = false;
+    this.shield.setAlpha(1).setVisible(false);
+
+    if (this.botShieldTimerEvent) {
+      this.botShieldTimerEvent.remove(false);
+      this.botShieldTimerEvent = null;
+    }
+    this.botShieldActive = false;
+    this.botShield.setAlpha(1).setVisible(false);
+
+    this.updateReloadEffectPositions();
+    [...this.playerReloadOrbs, ...this.botReloadOrbs].forEach((orb) => {
+      if (orb) {
+        orb.setVisible(false).setAlpha(0).setScale(0.8);
+      }
+    });
+
+    this.actionExecuted = false;
+    this.selectedAction = null;
+    this.botSelectedAction = null;
+    this.enableAllButtons();
+
+    this.roundActive = true;
+    this.roundPhase = "countdown";
+    this.roundPhaseEndsAtMs = nowMs + this.getRoundDurationMs();
+
+    this.countdownText.setFill("#ffff00");
+    this.countdownText.setFontSize(this.countdownNumberSize);
+    this.emitScene0State(true);
+  }
+
+  beginActionPhase(nowMs, skipActionExecution = false) {
+    if (this.gameOver) return;
+
+    this.roundActive = false;
+    this.roundPhase = "action";
+    this.roundPhaseEndsAtMs = nowMs + 1500;
+
+    this.countdownText.setText("Ação!");
+    this.countdownText.setFill("#ff0000");
+    this.countdownText.setFontSize(this.countdownMessageSize);
+
+    this.disableAllButtons(true);
+
+    if (!skipActionExecution) {
+      this.executeRoundActions();
+    }
+  }
+
+  beginGapPhase(nowMs) {
+    this.roundPhase = "gap";
+    this.roundPhaseEndsAtMs = nowMs + 500;
+    this.countdownText.setText("");
+
+    if (this.shield.visible) {
+      this.tweens.killTweensOf(this.shield);
+      this.tweens.add({
+        targets: this.shield,
+        alpha: 0,
+        duration: 500,
+        ease: "Linear",
+        onComplete: () => {
+          this.shieldActive = false;
+          this.shield.setAlpha(1).setVisible(false);
+        },
+      });
+    }
+
+    if (this.botShield.visible) {
+      this.tweens.killTweensOf(this.botShield);
+      this.tweens.add({
+        targets: this.botShield,
+        alpha: 0,
+        duration: 500,
+        ease: "Linear",
+        onComplete: () => {
+          this.botShieldActive = false;
+          this.botShield.setAlpha(1).setVisible(false);
+        },
+      });
+    }
+  }
+
+  updateRoundClockState() {
+    if (!this.scene || !this.scene.isActive() || this.gameOver) return;
+    if (!this.matchStartedAtMs || !this.roundPhaseEndsAtMs) return;
+
+    const nowMs = this.getSyncedNowMs();
+    let transitions = 0;
+
+    while (nowMs >= this.roundPhaseEndsAtMs && transitions < 16) {
+      const transitionAnchor = this.roundPhaseEndsAtMs;
+
+      if (this.roundPhase === "prepare") {
+        this.beginCountdownPhase(transitionAnchor);
+      } else if (this.roundPhase === "countdown") {
+        this.beginActionPhase(transitionAnchor, transitions > 0);
+      } else if (this.roundPhase === "action") {
+        this.beginGapPhase(transitionAnchor);
+      } else {
+        this.beginPreparePhase(transitionAnchor);
+      }
+
+      transitions += 1;
+    }
+
+    if (transitions >= 16) {
+      this.beginPreparePhase(nowMs);
+      return;
+    }
+
+    if (this.roundPhase === "countdown") {
+      const remainingMs = Math.max(0, this.roundPhaseEndsAtMs - nowMs);
+      const remainingTime = Math.max(1, Math.ceil(remainingMs / 1000));
+      this.countdownText.setText(remainingTime);
+
+      if (remainingTime === 2) {
+        this.countdownText.setFill("#ff8800");
+      } else if (remainingTime === 1) {
+        this.countdownText.setFill("#ff0000");
+      } else {
+        this.countdownText.setFill("#ffff00");
+      }
+    }
+  }
+
+  startMatchClock(matchStartAt) {
+    if (typeof matchStartAt !== "number") return;
+
+    this.matchStartedAtMs = matchStartAt;
+    this.roundCount = 0;
+    this.actionExecuted = false;
+    this.selectedAction = null;
+    this.botSelectedAction = null;
+    this.beginPreparePhase(matchStartAt - 1000);
   }
 
   preload() {
@@ -520,6 +814,16 @@ class scene0 extends Phaser.Scene {
         this.game.socket.off("scene0", this.scene0StateListener);
         this.scene0StateListener = null;
       }
+
+      if (this.game.socket && this.scene0MatchStartListener) {
+        this.game.socket.off("scene0-match-start", this.scene0MatchStartListener);
+        this.scene0MatchStartListener = null;
+      }
+
+      if (this.scene0ReadyRetryEvent) {
+        this.scene0ReadyRetryEvent.remove(false);
+        this.scene0ReadyRetryEvent = null;
+      }
     });
 
     this.player = this.physics.add
@@ -542,12 +846,45 @@ class scene0 extends Phaser.Scene {
 
     if (this.game.socket) {
       this.scene0StateListener = (state) => {
+        this.syncServerClock(state?.serverTime);
         const remotePlayer = state?.player;
         if (!remotePlayer || remotePlayer.id === this.game.socket.id) return;
         this.syncRemotePlayerState(remotePlayer);
       };
 
+      this.scene0MatchStartListener = (payload) => {
+        this.syncServerClock(payload?.serverTime);
+
+        if (typeof payload?.matchStartAt === "number") {
+          this.startMatchClock(payload.matchStartAt);
+          if (this.scene0ReadyRetryEvent) {
+            this.scene0ReadyRetryEvent.remove(false);
+            this.scene0ReadyRetryEvent = null;
+          }
+        }
+      };
+
       this.game.socket.on("scene0", this.scene0StateListener);
+      this.game.socket.on("scene0-match-start", this.scene0MatchStartListener);
+      if (this.game.room) {
+        this.game.socket.emit("scene0-ready", this.game.room);
+
+        this.scene0ReadyRetryEvent = this.time.addEvent({
+          delay: 1000,
+          loop: true,
+          callback: () => {
+            if (this.matchStartedAtMs || this.gameOver || !this.scene.isActive()) {
+              if (this.scene0ReadyRetryEvent) {
+                this.scene0ReadyRetryEvent.remove(false);
+                this.scene0ReadyRetryEvent = null;
+              }
+              return;
+            }
+
+            this.game.socket.emit("scene0-ready", this.game.room);
+          },
+        });
+      }
     }
 
     if (typeof window !== "undefined") {
@@ -786,6 +1123,7 @@ class scene0 extends Phaser.Scene {
 
       this.selectedAction = "shoot";
       this.actionExecuted = true;
+      this.emitScene0State(true);
 
       // Desabilita todos os botões até o próximo round
       this.disableAllButtons(true);
@@ -797,6 +1135,7 @@ class scene0 extends Phaser.Scene {
 
       this.selectedAction = "reload";
       this.actionExecuted = true;
+      this.emitScene0State(true);
 
       // Desabilita todos os botões até o próximo round
       this.disableAllButtons(true);
@@ -808,6 +1147,7 @@ class scene0 extends Phaser.Scene {
 
       this.selectedAction = "armor";
       this.actionExecuted = true;
+      this.emitScene0State(true);
 
       // Desabilita todos os botões até o próximo round
       this.disableAllButtons(true);
@@ -844,154 +1184,13 @@ class scene0 extends Phaser.Scene {
 
   showPrepareAndStartRound() {
     this.disableAllButtons(true);
-    this.countdownText.setText("Preparar...");
+    this.countdownText.setText("Aguardando sincronização...");
     this.countdownText.setFill("#00ff00");
-    this.countdownText.setFontSize(this.countdownMessageSize);
-
-    this.time.delayedCall(1000, () => {
-      if (this.gameOver) return;
-      this.startRound();
-    });
+    this.countdownText.setFontSize("28px");
   }
 
   startRound() {
-    if (this.gameOver) return;
-
-    this.roundCount += 1;
-    this.updateBackgroundSpeedForRound();
-
-    // Garante que o escudo visual e seu estado sejam resetados a cada nova rodada.
-    if (this.shieldTimerEvent) {
-      this.shieldTimerEvent.remove(false);
-      this.shieldTimerEvent = null;
-    }
-    this.shieldActive = false;
-    this.shield.setAlpha(1).setVisible(false);
-    if (this.botShieldTimerEvent) {
-      this.botShieldTimerEvent.remove(false);
-      this.botShieldTimerEvent = null;
-    }
-    this.botShieldActive = false;
-    this.botShield.setAlpha(1).setVisible(false);
-    this.updateReloadEffectPositions();
-    [...this.playerReloadOrbs, ...this.botReloadOrbs].forEach((orb) => {
-      if (orb) {
-        orb.setVisible(false).setAlpha(0).setScale(0.8);
-      }
-    });
-
-    // Reseta o estado para permitir nova ação
-    this.actionExecuted = false;
-    this.selectedAction = null;
-    this.botSelectedAction = null;
-
-    // Habilita todos os botões
-    this.enableAllButtons();
-
-    this.roundActive = true;
-    const totalRoundMs = this.getRoundDurationMs();
-    let remainingMs = totalRoundMs;
-    let remainingTime = this.getRoundDurationSeconds();
-    this.countdownText.setText(remainingTime);
-    this.countdownText.setFill("#ffff00");
-    this.countdownText.setFontSize(this.countdownNumberSize);
-
-    // Atualiza a contagem a cada segundo
-    if (this.roundCountdownEvent) {
-      this.roundCountdownEvent.remove(false);
-      this.roundCountdownEvent = null;
-    }
-
-    this.roundCountdownEvent = this.time.addEvent({
-      delay: 1000,
-      loop: true,
-      callback: () => {
-        if (this.gameOver || !this.scene.isActive()) return;
-
-        remainingMs -= 1000;
-        if (remainingMs <= 0) return;
-
-        remainingTime = Math.max(1, Math.floor(remainingMs / 1000));
-        this.countdownText.setText(remainingTime);
-
-        // Muda cor durante a contagem
-        if (remainingTime === 2) {
-          this.countdownText.setFill("#ff8800");
-        } else if (remainingTime === 1) {
-          this.countdownText.setFill("#ff0000");
-        }
-      },
-    });
-
-    this.time.delayedCall(totalRoundMs, () => {
-      if (!this.scene || !this.scene.isActive() || this.gameOver) return;
-
-      if (this.roundCountdownEvent) {
-        this.roundCountdownEvent.remove(false);
-        this.roundCountdownEvent = null;
-      }
-
-      this.roundActive = false;
-      this.countdownText.setText("Ação!");
-      this.countdownText.setFill("#ff0000");
-      this.countdownText.setFontSize(this.countdownMessageSize);
-
-      // Desabilita todos os botões quando a contagem termina e aplica visual inativo.
-      this.disableAllButtons(true);
-      this.executeRoundActions();
-      this.disableAllButtons(true);
-
-      // Aguarda 1,5 segundo com "Ação!" exibido.
-      this.time.delayedCall(1500, () => {
-        if (!this.scene || !this.scene.isActive() || this.gameOver) return;
-
-        // Intervalo vazio de meio segundo antes da preparação.
-        this.countdownText.setText("");
-
-        if (this.shield.visible) {
-          this.tweens.killTweensOf(this.shield);
-          this.tweens.add({
-            targets: this.shield,
-            alpha: 0,
-            duration: 500,
-            ease: "Linear",
-            onComplete: () => {
-              this.shieldActive = false;
-              this.shield.setAlpha(1).setVisible(false);
-            },
-          });
-        }
-
-        if (this.botShield.visible) {
-          this.tweens.killTweensOf(this.botShield);
-          this.tweens.add({
-            targets: this.botShield,
-            alpha: 0,
-            duration: 500,
-            ease: "Linear",
-            onComplete: () => {
-              this.botShieldActive = false;
-              this.botShield.setAlpha(1).setVisible(false);
-            },
-          });
-        }
-
-        this.time.delayedCall(500, () => {
-          if (!this.scene || !this.scene.isActive() || this.gameOver) return;
-          if (this.gameOver) return;
-
-          // Mostra mensagem de preparação antes da próxima rodada.
-          this.countdownText.setText("Preparar...");
-          this.countdownText.setFill("#00ff00");
-          this.countdownText.setFontSize(this.countdownMessageSize);
-
-          this.time.delayedCall(1000, () => {
-            if (this.gameOver) return;
-            this.startRound();
-          });
-        });
-      });
-    });
+    this.beginCountdownPhase(this.getSyncedNowMs());
   }
 
   revealSelectedAction() {
@@ -1724,6 +1923,7 @@ class scene0 extends Phaser.Scene {
     if (this.botEnabled) {
       this.executeBotAction();
     }
+    this.emitScene0State(true);
   }
 
   executePlayerAction() {
@@ -1892,6 +2092,8 @@ class scene0 extends Phaser.Scene {
   update() {
     if (!this.scene || !this.scene.isActive()) return;
 
+    this.updateRoundClockState();
+
     if (this.shield && this.player) {
       this.shield.setPosition(
         this.player.x - this.playerShieldOffsetX,
@@ -1908,27 +2110,7 @@ class scene0 extends Phaser.Scene {
     this.positionLivesDisplay();
 
     try {
-      const equippedShip = window.LojaNaves?.getEquippedShip?.();
-      this.game.socket.emit("scene0", this.game.room, {
-        player: {
-          id: this.game.socket.id,
-          x: this.player.x,
-          y: this.player.y,
-          ship: equippedShip
-            ? {
-                textureKey: equippedShip.textureKey,
-                frameKey: equippedShip.frameKey,
-                playerScale: equippedShip.playerScale,
-                flipYForPlayer1: equippedShip.flipYForPlayer1,
-                tint: equippedShip.tint,
-              }
-            : null,
-          shieldActive: this.shieldActive,
-          shotsLoaded: this.shotsLoaded,
-          lives: this.player1Lives,
-          selectedAction: this.selectedAction,
-        },
-      });
+      this.emitScene0State(false);
     } catch (e) {
       console.error("Error updating player:", e);
     }

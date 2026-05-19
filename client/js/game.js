@@ -12,11 +12,17 @@ class Game extends Phaser.Game {
     super(config);
 
     if (location.hostname.match(/localhost|127\.0\.0\.1/)) {
-      this.socket = io("http://localhost:3000");
+      this.socket = io("http://localhost:3000", {
+        transports: ["websocket"],
+      });
     } else if (location.hostname.match(/github\.dev/)) {
-      this.socket = io(location.hostname.replace("8080", "3000"));
+      this.socket = io(location.hostname.replace("8080", "3000"), {
+        transports: ["websocket"],
+      });
     } else {
-      this.socket = io();
+      this.socket = io({
+        transports: ["websocket"],
+      });
     }
 
     this.scene.add("telainicial", TelaInicial);

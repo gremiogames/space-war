@@ -3,6 +3,7 @@ const { Server } = require("socket.io");
 
 const httpServer = createServer();
 const io = new Server(httpServer, {
+  transports: ["websocket"],
   cors: {
     origin: [/localhost/, /github\.dev/, /feira-de-jogos\.dev\.br/],
   },
@@ -11,6 +12,18 @@ const io = new Server(httpServer, {
     skipMiddlewares: true,
   },
 });
+
+const roomMatchState = new Map();
+
+function getOrCreateRoomMatchState(room) {
+  if (!roomMatchState.has(room)) {
+    roomMatchState.set(room, {
+      matchStartAt: null,
+    });
+  }
+
+  return roomMatchState.get(room);
+}
 
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
@@ -36,7 +49,33 @@ io.on("connection", (socket) => {
   });
 
   socket.on("scene0", (room, state) => {
-    socket.to(room).emit("scene0", state);
+    // Use volatile updates for realtime state to avoid queue buildup/lag.
+    // Broadcast to the whole room (including sender) so every client can
+    // continuously correct local clock drift from serverTime.
+    io.to(room).volatile.emit("scene0", {
+      ...state,
+      serverTime: Date.now(),
+    });
+  });
+
+  socket.on("scene0-ready", (room) => {
+    if (!room) return;
+
+    // Ensure the socket is actually in the room before broadcasting start.
+    socket.join(room);
+
+    const roomState = getOrCreateRoomMatchState(room);
+    const now = Date.now();
+
+    // Recreate match start when absent or stale from a previous session.
+    if (!roomState.matchStartAt || roomState.matchStartAt < now - 30000) {
+      roomState.matchStartAt = now + 1200;
+    }
+
+    io.to(room).emit("scene0-match-start", {
+      matchStartAt: roomState.matchStartAt,
+      serverTime: now,
+    });
   });
 
   socket.on("disconnect", () => {
