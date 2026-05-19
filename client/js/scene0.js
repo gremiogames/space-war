@@ -140,7 +140,9 @@ class scene0 extends Phaser.Scene {
     }
 
     sprite.setFlipY(
-      isPlayer1 ? Boolean(ship.flipYForPlayer1) : !Boolean(ship.flipYForPlayer1),
+      isPlayer1
+        ? Boolean(ship.flipYForPlayer1)
+        : !Boolean(ship.flipYForPlayer1),
     );
 
     if (ship.tint && ship.tint !== 0xffffff) {
@@ -312,7 +314,10 @@ class scene0 extends Phaser.Scene {
       });
     }
 
-    if (typeof window !== "undefined" && window.LojaNaves?.preloadShipTextures) {
+    if (
+      typeof window !== "undefined" &&
+      window.LojaNaves?.preloadShipTextures
+    ) {
       window.LojaNaves.preloadShipTextures(this);
     }
 
