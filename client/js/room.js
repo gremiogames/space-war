@@ -125,7 +125,6 @@ class room extends Phaser.Scene {
           this.scene.start("scene0");
         },
       });
-
     }
 
     if (!hasRoomFromUrl) {
