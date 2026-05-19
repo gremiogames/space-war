@@ -363,22 +363,29 @@ function preloadShipTextures(scene) {
   if (!scene || !scene.load || !scene.textures) return;
 
   const queuedTextureKeys = new Set();
+  const hasAssetsBasePath =
+    typeof scene.load.path === "string" && scene.load.path.includes("assets/");
 
   SHIPS.forEach((ship) => {
     if (scene.textures.exists(ship.textureKey)) return;
     if (queuedTextureKeys.has(ship.textureKey)) return;
 
     queuedTextureKeys.add(ship.textureKey);
+    const normalizedAssetPath = hasAssetsBasePath
+      ? ship.assetPath.replace(/^assets\//, "")
+      : ship.assetPath;
 
     if (ship.frameRect) {
-      scene.load.image(ship.textureKey, ship.assetPath);
+      scene.load.image(ship.textureKey, normalizedAssetPath);
     } else {
-      scene.load.spritesheet(ship.textureKey, ship.assetPath, {
+      scene.load.spritesheet(ship.textureKey, normalizedAssetPath, {
         frameWidth: ship.frameWidth,
         frameHeight: ship.frameHeight,
       });
     }
   });
+
+  return queuedTextureKeys.size;
 }
 
 function ensureShipFrames(scene) {
@@ -849,7 +856,6 @@ if (!TelaInicial.prototype.__shipStorePatched) {
   const originalMenuPreload = TelaInicial.prototype.preload;
   TelaInicial.prototype.preload = function patchedMenuPreload(...args) {
     originalMenuPreload.apply(this, args);
-    preloadShipTextures(this);
   };
 
   const originalMenuCreate = TelaInicial.prototype.create;
@@ -876,6 +882,15 @@ if (!TelaInicial.prototype.__shipStorePatched) {
       .setInteractive({ useHandCursor: true });
 
     const onStoreClick = () => {
+      const queuedAssets = preloadShipTextures(this);
+      if (queuedAssets > 0) {
+        this.load.once("complete", () => {
+          openStoreModal(this);
+        });
+        this.load.start();
+        return;
+      }
+
       openStoreModal(this);
     };
 

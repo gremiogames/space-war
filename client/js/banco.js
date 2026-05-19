@@ -179,7 +179,7 @@ TelaInicial.prototype.preload = function patchedMenuPreload(...args) {
   originalMenuPreload.apply(this, args);
 
   if (!this.textures.exists(COIN_TEXTURE_KEY)) {
-    this.load.image(COIN_TEXTURE_KEY, "assets/moeda.png");
+    this.load.image(COIN_TEXTURE_KEY, "moeda.png");
   }
 };
 

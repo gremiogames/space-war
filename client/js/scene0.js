@@ -247,47 +247,76 @@ class scene0 extends Phaser.Scene {
   }
 
   preload() {
-    this.load.image("backgroundMap", "assets/map-assets/Mapa3.png");
+    if (!this.textures.exists("backgroundMap")) {
+      this.load.image("backgroundMap", "assets/map-assets/Mapa3.png");
+    }
 
-    this.load.spritesheet("player1", "assets/player_b_m.png", {
-      frameWidth: 64,
-      frameHeight: 64,
-    });
-    this.load.spritesheet("player2", "assets/Alien-Frigate(3).png", {
-      frameWidth: 110,
-      frameHeight: 110,
-    });
+    if (!this.textures.exists("player1")) {
+      this.load.spritesheet("player1", "assets/player_b_m.png", {
+        frameWidth: 64,
+        frameHeight: 64,
+      });
+    }
+    if (!this.textures.exists("player2")) {
+      this.load.spritesheet("player2", "assets/Alien-Frigate(3).png", {
+        frameWidth: 110,
+        frameHeight: 110,
+      });
+    }
 
-    this.load.spritesheet("shotbutton", "assets/Enemy_Destroy_Bonus.png", {
-      frameWidth: 300,
-      frameHeight: 300,
-    });
+    if (!this.textures.exists("shotbutton")) {
+      this.load.spritesheet("shotbutton", "assets/Enemy_Destroy_Bonus.png", {
+        frameWidth: 300,
+        frameHeight: 300,
+      });
+    }
 
-    this.load.image("armorButton", "assets/Armor_Bonus.png");
+    if (!this.textures.exists("armorButton")) {
+      this.load.image("armorButton", "assets/Armor_Bonus.png");
+    }
 
-    this.load.image("reloadButton", "assets/Damage_Bonus.png");
+    if (!this.textures.exists("reloadButton")) {
+      this.load.image("reloadButton", "assets/Damage_Bonus.png");
+    }
 
-    this.load.image("shield", "assets/spr_shield.png");
-    this.load.image("heart", "assets/HEART 1.png");
+    if (!this.textures.exists("shield")) {
+      this.load.image("shield", "assets/spr_shield.png");
+    }
+    if (!this.textures.exists("heart")) {
+      this.load.image("heart", "assets/HEART 1.png");
+    }
 
-    this.load.image("sheet", "assets/map-assets/spritesheet.png");
-    this.load.atlasXML(
-      "sheetAtlas",
-      "assets/map-assets/spritesheet.png",
-      "assets/map-assets/spritesheet.xml",
-    );
+    if (!this.textures.exists("sheet")) {
+      this.load.image("sheet", "assets/map-assets/spritesheet.png");
+    }
 
-    this.load.audio("laser", "assets/efeitolaser.mp3");
-    this.load.audio("fullReload", "assets/reloadcharge.mp3");
-    this.load.audio(
-      "shieldSfx",
-      "assets/freesound_community-analog-lazer-fx-87122.mp3",
-    );
-    this.load.audio("explosionSfx", "assets/explosao.mp3");
-    this.load.audio("laserExplosionSfx", "assets/laserexplosao.mp3");
-    this.load.audio("laserBarrierSfx", "assets/laserbarrier.mp3");
-    this.load.audio("losingLifeSfx", "assets/losinglife.mp3");
-    this.load.audio("gameMusic", "assets/musicajogo.mp3");
+    if (!this.cache.audio.exists("laser")) {
+      this.load.audio("laser", "assets/efeitolaser.mp3");
+    }
+    if (!this.cache.audio.exists("fullReload")) {
+      this.load.audio("fullReload", "assets/reloadcharge.mp3");
+    }
+    if (!this.cache.audio.exists("shieldSfx")) {
+      this.load.audio(
+        "shieldSfx",
+        "assets/freesound_community-analog-lazer-fx-87122.mp3",
+      );
+    }
+    if (!this.cache.audio.exists("explosionSfx")) {
+      this.load.audio("explosionSfx", "assets/explosao.mp3");
+    }
+    if (!this.cache.audio.exists("laserExplosionSfx")) {
+      this.load.audio("laserExplosionSfx", "assets/laserexplosao.mp3");
+    }
+    if (!this.cache.audio.exists("laserBarrierSfx")) {
+      this.load.audio("laserBarrierSfx", "assets/laserbarrier.mp3");
+    }
+    if (!this.cache.audio.exists("losingLifeSfx")) {
+      this.load.audio("losingLifeSfx", "assets/losinglife.mp3");
+    }
+    if (!this.cache.audio.exists("gameMusic")) {
+      this.load.audio("gameMusic", "assets/musicajogo.mp3");
+    }
   }
 
   create() {

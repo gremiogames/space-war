@@ -2,6 +2,9 @@ import config from "./config.js";
 import scene0 from "./scene0.js";
 import tutorial from "./tutorial.js";
 import TelaInicial from "./telainicial.js";
+import preloader from "./preloader.js";
+import room from "./room.js";
+import player from "./player.js";
 import "./banco.js";
 import "./loja.js";
 

@@ -8,9 +8,16 @@ class TelaInicial extends Phaser.Scene {
     this.menuMusic = null;
   }
 
+  init() {
+    let room = new URLSearchParams(location.search).get("room");
+    if (room) this.game.room = room;
+  }
+
   preload() {
-    this.load.image("menuBackground", "assets/telamenu2.png");
-    this.load.audio("menuMusic", "assets/musicamenu.mp3");
+    this.load.setPath("assets/");
+    this.load.image("menuBackground", "telamenu2.png");
+
+    this.load.audio("menuMusic", "musicamenu.mp3");
   }
 
   create() {
@@ -61,7 +68,9 @@ class TelaInicial extends Phaser.Scene {
         if (this.menuMusic && this.menuMusic.isPlaying) {
           this.menuMusic.stop();
         }
-        this.scene.start("scene0");
+        this.game.offlineMode = true;
+        this.scene.stop("telainicial");
+        this.scene.start("preloader");
       },
     });
 
