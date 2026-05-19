@@ -93,7 +93,7 @@ class room extends Phaser.Scene {
       this.add
         .text(width / 2, height * 0.845, `Sala ${this.game.room}`, {
           fontFamily: pixelFont,
-          fontSize: "10px",
+          fontSize: "12px",
           color: "#bfbfbf",
           align: "center",
         })

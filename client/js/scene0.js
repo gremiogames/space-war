@@ -106,43 +106,86 @@ class scene0 extends Phaser.Scene {
     this.rewardText = null;
     this.rewardCoinIcon = null;
     this.botEnabled = false;
+    this.scene0StateListener = null;
   }
 
   applyStoreShipToPlayer() {
     if (!this.player || typeof window === "undefined") return;
 
     const equippedShip = window.LojaNaves?.getEquippedShip?.();
-    if (!equippedShip) return;
-    if (!this.textures.exists(equippedShip.textureKey)) return;
+    this.applyShipToSprite(this.player, equippedShip, true);
+  }
 
-    if (equippedShip.frameRect && equippedShip.frameKey) {
-      const texture = this.textures.get(equippedShip.textureKey);
-      if (texture && !texture.has(equippedShip.frameKey)) {
+  applyShipToSprite(sprite, ship, isPlayer1 = true) {
+    if (!sprite || !ship || !this.textures.exists(ship.textureKey)) return;
+
+    if (ship.frameRect && ship.frameKey) {
+      const texture = this.textures.get(ship.textureKey);
+      if (texture && !texture.has(ship.frameKey)) {
         texture.add(
-          equippedShip.frameKey,
+          ship.frameKey,
           0,
-          equippedShip.frameRect.x,
-          equippedShip.frameRect.y,
-          equippedShip.frameRect.w,
-          equippedShip.frameRect.h,
+          ship.frameRect.x,
+          ship.frameRect.y,
+          ship.frameRect.w,
+          ship.frameRect.h,
         );
       }
     }
 
-    const frame = equippedShip.frameKey || 0;
-    this.player.setTexture(equippedShip.textureKey, frame);
+    sprite.setTexture(ship.textureKey, ship.frameKey || 0);
 
-    if (equippedShip.playerScale) {
-      this.player.setScale(equippedShip.playerScale);
+    if (ship.playerScale) {
+      sprite.setScale(ship.playerScale);
     }
 
-    this.player.setFlipY(Boolean(equippedShip.flipYForPlayer1));
+    sprite.setFlipY(
+      isPlayer1 ? Boolean(ship.flipYForPlayer1) : !Boolean(ship.flipYForPlayer1),
+    );
 
-    if (equippedShip.tint && equippedShip.tint !== 0xffffff) {
-      this.player.setTint(equippedShip.tint);
+    if (ship.tint && ship.tint !== 0xffffff) {
+      sprite.setTint(ship.tint);
     } else {
-      this.player.clearTint();
+      sprite.clearTint();
     }
+  }
+
+  syncRemotePlayerState(remotePlayer) {
+    if (!remotePlayer || !this.player2 || typeof window === "undefined") return;
+
+    this.player2.setActive(true).setVisible(true);
+
+    if (remotePlayer.ship) {
+      this.applyShipToSprite(this.player2, remotePlayer.ship, false);
+    }
+
+    if (typeof remotePlayer.shieldActive === "boolean") {
+      this.botShieldActive = remotePlayer.shieldActive;
+      this.botShield.setVisible(this.botShieldActive);
+      if (this.botShieldActive) {
+        this.botShield.setAlpha(1);
+      }
+    }
+
+    if (typeof remotePlayer.shotsLoaded === "number") {
+      this.botShotsLoaded = remotePlayer.shotsLoaded;
+      this.updateBotAmmoDisplay();
+    }
+
+    if (typeof remotePlayer.lives === "number") {
+      this.player2Lives = remotePlayer.lives;
+      this.updateLivesDisplay();
+    }
+
+    if (
+      typeof remotePlayer.selectedAction === "string" ||
+      remotePlayer.selectedAction === null
+    ) {
+      this.botSelectedAction = remotePlayer.selectedAction;
+      this.botEnabled = true;
+    }
+
+    this.updateReloadEffectPositions();
   }
 
   getReloadEffectConfigForShip(
@@ -267,6 +310,10 @@ class scene0 extends Phaser.Scene {
         frameWidth: 110,
         frameHeight: 110,
       });
+    }
+
+    if (typeof window !== "undefined" && window.LojaNaves?.preloadShipTextures) {
+      window.LojaNaves.preloadShipTextures(this);
     }
 
     if (!this.textures.exists("shotbutton")) {
@@ -463,6 +510,11 @@ class scene0 extends Phaser.Scene {
       if (this.gameMusic && this.gameMusic.isPlaying) {
         this.gameMusic.stop();
       }
+
+      if (this.game.socket && this.scene0StateListener) {
+        this.game.socket.off("scene0", this.scene0StateListener);
+        this.scene0StateListener = null;
+      }
     });
 
     this.player = this.physics.add
@@ -482,6 +534,16 @@ class scene0 extends Phaser.Scene {
     this.player2.body.setAllowGravity(false);
     this.applyStoreShipToPlayer();
     this.refreshReloadEffectConfigs();
+
+    if (this.game.socket) {
+      this.scene0StateListener = (state) => {
+        const remotePlayer = state?.player;
+        if (!remotePlayer || remotePlayer.id === this.game.socket.id) return;
+        this.syncRemotePlayerState(remotePlayer);
+      };
+
+      this.game.socket.on("scene0", this.scene0StateListener);
+    }
 
     if (typeof window !== "undefined") {
       if (!this.onShipsUpdated) {
@@ -1859,6 +1921,7 @@ class scene0 extends Phaser.Scene {
           shieldActive: this.shieldActive,
           shotsLoaded: this.shotsLoaded,
           lives: this.player1Lives,
+          selectedAction: this.selectedAction,
         },
       });
     } catch (e) {
