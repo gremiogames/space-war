@@ -53,6 +53,10 @@ class scene0 extends Phaser.Scene {
     this.botReloadOrbs = [];
     this.playerReloadEffectConfig = null;
     this.botReloadEffectConfig = null;
+    this.threshold = 0.1;
+    this.speed = 100;
+    this.direction = undefined;
+    this.remotePlayers = [];
 
     // Sistema de contagem regressiva
     this.roundActive = false;
@@ -101,6 +105,7 @@ class scene0 extends Phaser.Scene {
     this.onShipsUpdated = null;
     this.rewardText = null;
     this.rewardCoinIcon = null;
+    this.botEnabled = false;
   }
 
   applyStoreShipToPlayer() {
@@ -811,12 +816,7 @@ class scene0 extends Phaser.Scene {
     // Reseta o estado para permitir nova ação
     this.actionExecuted = false;
     this.selectedAction = null;
-    this.botSelectedAction = this.botController.chooseAction({
-      botShotsLoaded: this.botShotsLoaded,
-      playerShotsLoaded: this.shotsLoaded,
-      playerShieldActive: this.shieldActive,
-      botShieldActive: this.botShieldActive,
-    });
+    this.botSelectedAction = null;
 
     // Habilita todos os botões
     this.enableAllButtons();
@@ -1654,7 +1654,9 @@ class scene0 extends Phaser.Scene {
 
   executeRoundActions() {
     this.executePlayerAction();
-    this.executeBotAction();
+    if (this.botEnabled) {
+      this.executeBotAction();
+    }
   }
 
   executePlayerAction() {

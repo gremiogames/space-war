@@ -2,8 +2,7 @@ class TelaInicial extends Phaser.Scene {
   constructor() {
     super("telainicial");
     this.tutorialButton = null;
-    this.playOfflineButton = null;
-    this.playOnlineButton = null;
+    this.playButton = null;
     this.statusText = null;
     this.menuMusic = null;
   }
@@ -49,7 +48,7 @@ class TelaInicial extends Phaser.Scene {
 
     this.tutorialButton = this.createButton({
       x: width / 2,
-      y: height * 0.58,
+      y: height * 0.66,
       label: "Tutorial",
       fillColor: 0x0f0f0f,
       hoverColor: 0x1b1b1b,
@@ -58,30 +57,18 @@ class TelaInicial extends Phaser.Scene {
       },
     });
 
-    this.playOfflineButton = this.createButton({
+    this.playButton = this.createButton({
       x: width / 2,
-      y: height * 0.69,
-      label: "Jogar Offline",
-      fillColor: 0x0f0f0f,
-      hoverColor: 0x1b1b1b,
+      y: height * 0.76,
+      label: "Jogar",
+      fillColor: 0x16411f,
+      hoverColor: 0x225d2c,
       onClick: () => {
         if (this.menuMusic && this.menuMusic.isPlaying) {
           this.menuMusic.stop();
         }
-        this.game.offlineMode = true;
         this.scene.stop("telainicial");
         this.scene.start("preloader");
-      },
-    });
-
-    this.playOnlineButton = this.createButton({
-      x: width / 2,
-      y: height * 0.8,
-      label: "Jogar Online",
-      fillColor: 0x0f0f0f,
-      hoverColor: 0x1b1b1b,
-      onClick: () => {
-        this.statusText.setText("Modo online em breve").setVisible(true);
       },
     });
 

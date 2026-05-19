@@ -961,4 +961,6 @@ window.LojaNaves = {
   getEquippedShipReloadEffect,
   setEquippedShip,
   buyShip,
+  openStoreModal,
+  preloadShipTextures,
 };

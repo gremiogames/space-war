@@ -70,20 +70,7 @@ class preloader extends Phaser.Scene {
 
   create() {
     this.scene.stop("preloader");
-
-    /*
-    if (this.game.offlineMode) {
-      this.game.offlineMode = false;
-      this.scene.start("scene0");
-      return;
-    }
-    */
-
-    if (this.game.room) {
-      this.scene.start("player");
-    } else {
-      this.scene.start("room");
-    }
+    this.scene.start("room");
   }
 }
 

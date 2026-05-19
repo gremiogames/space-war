@@ -160,26 +160,13 @@ class player extends Phaser.Scene {
       },
     });
 
-    // Button: Offline
+    // Button: Jogar
     this.createButton({
-      x: width / 2 - 140,
+      x: width / 2,
       y: height * 0.85,
-      label: "Offline",
+      label: "Jogar",
       fillColor: 0x1a3a1a,
       hoverColor: 0x2a6a2a,
-      onClick: () => {
-        this.scene.stop("player");
-        this.scene.start("scene0");
-      },
-    });
-
-    // Button: Online
-    this.createButton({
-      x: width / 2 + 140,
-      y: height * 0.85,
-      label: "Online",
-      fillColor: 0x3a1a1a,
-      hoverColor: 0x6a2a2a,
       onClick: () => {
         this.scene.stop("player");
         this.scene.start("room");
