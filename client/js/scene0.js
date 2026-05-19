@@ -1854,9 +1854,9 @@ class scene0 extends Phaser.Scene {
                 tint: equippedShip.tint,
               }
             : null,
-         shieldActive: this.shieldActive,
-         shotsLoaded: this.shotsLoaded,
-         lives: this.player1Lives,
+          shieldActive: this.shieldActive,
+          shotsLoaded: this.shotsLoaded,
+          lives: this.player1Lives,
         },
       });
     } catch (e) {

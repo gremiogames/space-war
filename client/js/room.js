@@ -5,10 +5,10 @@ class room extends Phaser.Scene {
   }
 
   create() {
-    this.add.image(400, 225, "room-background");
+    this.add.image(400, 225, "room-brackground");
     this.game.room = (Math.random() * 10000).toString().split(".")[0];
     this.add.text(50, 50, this.game.room, {
-      fontFamily: '"Press Start 2P", monospace',
+      fontFamily: "pixelify-sans",
       fontSize: "32px",
       fill: "#000000",
     });

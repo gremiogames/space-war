@@ -5,19 +5,22 @@ class player extends Phaser.Scene {
 
   preload() {
     this.load.setPath("assets/");
-    
+
     // Load coin texture if not already loaded
     if (!this.textures.exists("coinIcon")) {
       this.load.image("coinIcon", "moeda.png");
     }
-    
+
     // Preload ship textures se não estiverem carregadas
     if (window.LojaNaves && window.LojaNaves.getShips) {
       const ships = window.LojaNaves.getShips();
       const loadedTextures = new Set();
-      
+
       ships.forEach((ship) => {
-        if (loadedTextures.has(ship.textureKey) || this.textures.exists(ship.textureKey)) {
+        if (
+          loadedTextures.has(ship.textureKey) ||
+          this.textures.exists(ship.textureKey)
+        ) {
           return;
         }
         loadedTextures.add(ship.textureKey);
@@ -103,7 +106,12 @@ class player extends Phaser.Scene {
     // Display equipped ship preview
     if (equippedShip && this.textures.exists(equippedShip.textureKey)) {
       const shipSprite = this.add
-        .sprite(width / 2, height * 0.42, equippedShip.textureKey, equippedShip.frameKey || 0)
+        .sprite(
+          width / 2,
+          height * 0.42,
+          equippedShip.textureKey,
+          equippedShip.frameKey || 0,
+        )
         .setScale(equippedShip.playerScale * 2.5)
         .setDepth(5);
 
@@ -180,12 +188,17 @@ class player extends Phaser.Scene {
 
     // Info text
     this.add
-      .text(width / 2, height * 0.93, "Customize sua nave na Loja antes de jogar", {
-        fontFamily: pixelFont,
-        fontSize: "9px",
-        color: "#888888",
-        align: "center",
-      })
+      .text(
+        width / 2,
+        height * 0.93,
+        "Customize sua nave na Loja antes de jogar",
+        {
+          fontFamily: pixelFont,
+          fontSize: "9px",
+          color: "#888888",
+          align: "center",
+        },
+      )
       .setOrigin(0.5)
       .setDepth(10);
   }

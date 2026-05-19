@@ -28,27 +28,23 @@ class Game extends Phaser.Game {
       this.socket = io();
     }
 
-    this.room = "0";
     this.socket.on("connect", () => {
       console.log("Socket ID:", this.socket.id);
 
-      this.socket.emit("join-room", this.room);
+      this.socket.on("change-scene", (scene) => {
+        let currentScene = this.scene.scenes.find((s) => s.scene.isActive())
+          .scene.key;
+
+        if (currentScene !== scene) {
+          console.log("Changing scene to:", scene);
+          this.scene.stop(currentScene);
+          this.scene.start(scene);
+        }
+      });
     });
   }
 }
 
-async function waitForPixelFont() {
-  if (!document.fonts || !document.fonts.load) return;
-
-  const fontLoad = document.fonts.load('16px "Press Start 2P"');
-  const timeout = new Promise((resolve) => {
-    setTimeout(resolve, 2000);
-  });
-
-  await Promise.race([fontLoad, timeout]);
-}
-
 window.onload = async () => {
-  await waitForPixelFont();
   window.game = new Game();
 };
