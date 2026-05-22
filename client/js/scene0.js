@@ -231,7 +231,10 @@ class scene0 extends Phaser.Scene {
       this.applyShipToSprite(this.player2, remotePlayer.ship, false);
       this.applyShieldSizeForShip(this.botShield, remotePlayer.ship);
       this.refreshBotReloadEffectConfigFromShip(remotePlayer.ship);
-      this.applyReloadEffectStyle(this.botReloadOrbs, this.botReloadEffectConfig);
+      this.applyReloadEffectStyle(
+        this.botReloadOrbs,
+        this.botReloadEffectConfig,
+      );
     }
 
     if (typeof remotePlayer.shieldActive === "boolean") {
@@ -930,7 +933,10 @@ class scene0 extends Phaser.Scene {
       }
 
       if (this.game.socket && this.scene0MatchStartListener) {
-        this.game.socket.off("scene0-match-start", this.scene0MatchStartListener);
+        this.game.socket.off(
+          "scene0-match-start",
+          this.scene0MatchStartListener,
+        );
         this.scene0MatchStartListener = null;
       }
 
@@ -987,7 +993,11 @@ class scene0 extends Phaser.Scene {
           delay: 1000,
           loop: true,
           callback: () => {
-            if (this.matchStartedAtMs || this.gameOver || !this.scene.isActive()) {
+            if (
+              this.matchStartedAtMs ||
+              this.gameOver ||
+              !this.scene.isActive()
+            ) {
               if (this.scene0ReadyRetryEvent) {
                 this.scene0ReadyRetryEvent.remove(false);
                 this.scene0ReadyRetryEvent = null;
@@ -1991,8 +2001,12 @@ class scene0 extends Phaser.Scene {
     });
 
     if (this.botAmmoText) {
-      const labelY = this.player2Label ? this.player2Label.y + this.player2Label.height + 4 : p2Y + 22;
-      this.botAmmoText.setOrigin(1, 0).setPosition(this.scale.width - 6, labelY);
+      const labelY = this.player2Label
+        ? this.player2Label.y + this.player2Label.height + 4
+        : p2Y + 22;
+      this.botAmmoText
+        .setOrigin(1, 0)
+        .setPosition(this.scale.width - 6, labelY);
     }
 
     // Reposiciona labels dos jogadores quando a HUD é recalculada

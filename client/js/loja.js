@@ -913,7 +913,11 @@ function openStoreModal(scene) {
 
     // Remove per-row listeners
     rows.forEach((row) => {
-      if (row.actionButton && row.actionButton.active && row._onActionButtonClick) {
+      if (
+        row.actionButton &&
+        row.actionButton.active &&
+        row._onActionButtonClick
+      ) {
         row.actionButton.off("pointerdown", row._onActionButtonClick);
       }
     });
