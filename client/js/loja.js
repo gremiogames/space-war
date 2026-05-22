@@ -4,38 +4,9 @@ import TelaInicial from "./telainicial.js";
 const OWNED_SHIPS_STORAGE_KEY = "spaceWarOwnedShips";
 const EQUIPPED_SHIP_STORAGE_KEY = "spaceWarEquippedShip";
 const SHIPS_UPDATED_EVENT = "space-war-ships-updated";
+const TEST_UNLOCK_ALL_SHIPS = true;
 
 const SHIPS = [
-  {
-    id: "vanguarda-esmeralda",
-    name: "Vanguarda Esmeralda",
-    description: "Cápsula espacial equipada com armamento",
-    price: 150,
-    textureKey: "ship-atlas-core",
-    assetPath: "assets/map-assets/spritesheet.png",
-    frameRect: { x: 266, y: 477, w: 64, h: 64 },
-    frameKey: "enemy_1_g_m.png",
-    playerScale: 1.45,
-    previewScale: 1.05,
-    flipYInStorePreview: true,
-    tint: 0xffffff,
-    flipYForPlayer1: true,
-    reloadEffect: {
-      textureKey: "sheet",
-      frameKey: "expb_02",
-      displaySize: 22,
-      baseScale: 0.75,
-      peakScale: 1.35,
-      duration: 160,
-      hold: 90,
-      resetScale: 0.75,
-      offsets: [
-        { x: -20, y: -63 },
-        { x: 22, y: -63 },
-      ],
-    },
-    defaultOwned: false,
-  },
   {
     id: "falcao-mk1",
     name: "Falcao MK-I",
@@ -65,17 +36,19 @@ const SHIPS = [
     defaultOwned: true,
   },
   {
-    id: "falcao-elite",
-    name: "Falcão de Elite",
-    description: "Nave Espacial de combate avançada da frota humana",
-    price: 500,
-    textureKey: "ship-falcao-elite",
-    assetPath: "assets/player_b_m.png",
-    frameWidth: 64,
-    frameHeight: 64,
-    playerScale: 1.55,
-    previewScale: 1.15,
-    tint: 0xffdd66,
+    id: "fragata-neon-vermelha",
+    name: "Nave da Tropa de Elite Marciana",
+    description: "Os principais representantes da frota marciana",
+    price: 0,
+    textureKey: "ship-fragata-neon",
+    assetPath: "assets/Alien-Frigate(3).png",
+    frameWidth: 110,
+    frameHeight: 110,
+    playerScale: 1.25,
+    previewScale: 0.68,
+    flipYInStorePreview: true,
+
+    flipYForPlayer1: true,
     reloadEffect: {
       textureKey: "sheet",
       frameKey: "expb_02",
@@ -86,21 +59,22 @@ const SHIPS = [
       hold: 90,
       resetScale: 0.75,
       offsets: [
-        { x: -20, y: -63 },
-        { x: 17, y: -63 },
+        { x: -12, y: -70 },
+        { x: 12, y: -70 },
       ],
     },
-    defaultOwned: false,
+    defaultOwned: true,
   },
   {
-    id: "fragata-rubi",
-    name: "Space X",
-    description: "Nave espacial da frota Humana de Defesa",
-    price: 250,
+    id: "vanguarda-esmeralda",
+    name: "Vanguarda Esmeralda",
+    description:
+      "Nave espacial básica, refletindo as cores dos campos verdes da Terra",
+    price: 150,
     textureKey: "ship-atlas-core",
     assetPath: "assets/map-assets/spritesheet.png",
-    frameRect: { x: 68, y: 741, w: 64, h: 64 },
-    frameKey: "enemy_2_r_m.png",
+    frameRect: { x: 266, y: 477, w: 64, h: 64 },
+    frameKey: "enemy_1_g_m.png",
     playerScale: 1.45,
     previewScale: 1.05,
     flipYInStorePreview: true,
@@ -123,10 +97,97 @@ const SHIPS = [
     defaultOwned: false,
   },
   {
+    id: "falcao-elite",
+    name: "Falcão de Elite",
+    description: "Nave Espacial de combate avançada da frota humana",
+    price: 500,
+    textureKey: "ship-falcao-elite",
+    assetPath: "assets/player_b_m.png",
+    frameWidth: 64,
+    frameHeight: 64,
+    playerScale: 1.55,
+    previewScale: 1.15,
+    tint: 0xffdd66,
+    reloadEffect: {
+      textureKey: "sheet",
+      frameKey: "expb_02",
+      displaySize: 22,
+      baseScale: 0.75,
+      peakScale: 1.35,
+      duration: 160,
+      hold: 90,
+      resetScale: 0.75,
+      offsets: [
+        { x: -20, y: -63 },
+        { x: 18, y: -63 },
+      ],
+    },
+    defaultOwned: false,
+  },
+  {
+    id: "fragata-rubi",
+    name: "Space X",
+    description: "Nave espacial da frota Humana de Defesa",
+    price: 250,
+    textureKey: "ship-atlas-core",
+    assetPath: "assets/map-assets/spritesheet.png",
+    frameRect: { x: 68, y: 741, w: 64, h: 64 },
+    frameKey: "enemy_2_r_m.png",
+    playerScale: 1.45,
+    previewScale: 1.05,
+    flipYInStorePreview: true,
+    tint: 0x9966ff,
+    flipYForPlayer1: true,
+    reloadEffect: {
+      textureKey: "sheet",
+      frameKey: "expb_02",
+      displaySize: 22,
+      baseScale: 0.75,
+      peakScale: 1.35,
+      duration: 160,
+      hold: 90,
+      resetScale: 0.75,
+      offsets: [
+        { x: -16, y: -63 },
+        { x: 17, y: -63 },
+      ],
+    },
+    defaultOwned: false,
+  },
+  {
+    id: "space-x-azul",
+    name: "Space Y",
+    description: "Nave espacial da frota Humana de Sentinela",
+    price: 250,
+    textureKey: "ship-atlas-core",
+    assetPath: "assets/map-assets/spritesheet.png",
+    frameRect: { x: 68, y: 741, w: 64, h: 64 },
+    frameKey: "enemy_2_r_m.png",
+    playerScale: 1.45,
+    previewScale: 1.05,
+    flipYInStorePreview: true,
+    flipYForPlayer1: true,
+    reloadEffect: {
+      textureKey: "sheet",
+      frameKey: "expb_02",
+      displaySize: 22,
+      baseScale: 0.75,
+      peakScale: 1.35,
+      duration: 160,
+      hold: 90,
+      resetScale: 0.75,
+      offsets: [
+        { x: -16, y: -63 },
+        { x: 17, y: -63 },
+      ],
+    },
+    defaultOwned: false,
+  },
+  {
     id: "fragata-neon",
     name: "Troféu do General",
     description: "Espaçonave marciana do General Et. Bilu",
-    price: 800,
+    price: 700,
     textureKey: "ship-fragata-neon",
     assetPath: "assets/Alien-Frigate(3).png",
     frameWidth: 110,
@@ -150,7 +211,7 @@ const SHIPS = [
         { x: 12, y: -70 },
       ],
     },
-    defaultOwned: false,
+    defaultOwned: true,
   },
 ];
 
@@ -204,20 +265,55 @@ function uniqueShipIds(shipIds) {
   );
 }
 
-function getOwnedShips() {
-  const storedIds = uniqueShipIds(readJsonArray(OWNED_SHIPS_STORAGE_KEY));
+function getAllShipIds() {
+  return SHIPS.map((ship) => ship.id);
+}
 
-  if (DEFAULT_SHIP && !storedIds.includes(DEFAULT_SHIP.id)) {
-    storedIds.unshift(DEFAULT_SHIP.id);
+function getEquipmentStorage() {
+  if (typeof window === "undefined") return null;
+
+  if (typeof window.sessionStorage !== "undefined") {
+    return window.sessionStorage;
   }
 
-  return storedIds;
+  if (typeof window.localStorage !== "undefined") {
+    return window.localStorage;
+  }
+
+  return null;
+}
+
+function getOwnedShips() {
+  if (TEST_UNLOCK_ALL_SHIPS) {
+    return getAllShipIds();
+  }
+
+  const storedIds = uniqueShipIds(readJsonArray(OWNED_SHIPS_STORAGE_KEY));
+
+  // Ensure ships marked as defaultOwned are included from the start.
+  const defaultOwnedIds = SHIPS.filter((s) => s.defaultOwned).map((s) => s.id);
+  const combined = uniqueShipIds([...defaultOwnedIds, ...storedIds]);
+
+  // Guarantee at least DEFAULT_SHIP is present for legacy behaviour.
+  if (DEFAULT_SHIP && !combined.includes(DEFAULT_SHIP.id)) {
+    combined.unshift(DEFAULT_SHIP.id);
+  }
+
+  return combined;
 }
 
 function persistOwnedShips(shipIds) {
+  if (TEST_UNLOCK_ALL_SHIPS) {
+    return getAllShipIds();
+  }
+
   const normalizedIds = uniqueShipIds(shipIds);
-  if (DEFAULT_SHIP && !normalizedIds.includes(DEFAULT_SHIP.id)) {
-    normalizedIds.unshift(DEFAULT_SHIP.id);
+  // Persist also ensures default-owned ships remain in the list.
+  const defaultOwnedIds = SHIPS.filter((s) => s.defaultOwned).map((s) => s.id);
+  const combined = uniqueShipIds([...defaultOwnedIds, ...normalizedIds]);
+
+  if (DEFAULT_SHIP && !combined.includes(DEFAULT_SHIP.id)) {
+    combined.unshift(DEFAULT_SHIP.id);
   }
 
   if (canUseStorage()) {
@@ -235,11 +331,12 @@ function persistOwnedShips(shipIds) {
 }
 
 function getEquippedShipId() {
-  if (!canUseStorage()) return DEFAULT_SHIP.id;
+  const storage = getEquipmentStorage();
+  if (!storage) return DEFAULT_SHIP.id;
 
   let equippedShipId = null;
   try {
-    equippedShipId = window.localStorage.getItem(EQUIPPED_SHIP_STORAGE_KEY);
+    equippedShipId = storage.getItem(EQUIPPED_SHIP_STORAGE_KEY);
   } catch {
     return DEFAULT_SHIP.id;
   }
@@ -259,9 +356,11 @@ function setEquippedShip(shipId) {
     return false;
   }
 
-  if (canUseStorage()) {
+  const storage = getEquipmentStorage();
+
+  if (storage) {
     try {
-      window.localStorage.setItem(EQUIPPED_SHIP_STORAGE_KEY, shipId);
+      storage.setItem(EQUIPPED_SHIP_STORAGE_KEY, shipId);
     } catch {
       return false;
     }
@@ -537,7 +636,7 @@ function openStoreModal(scene) {
     }
 
     const nameText = scene.add
-      .text(width * 0.3, baseRowY - 14, ship.name, {
+      .text(width * 0.26, baseRowY - 14, ship.name, {
         fontFamily: pixelFont,
         fontSize: "10px",
         color: "#eaf3ff",
@@ -546,11 +645,11 @@ function openStoreModal(scene) {
       .setDepth(123);
 
     const descText = scene.add
-      .text(width * 0.3, baseRowY + 10, ship.description, {
+      .text(width * 0.26, baseRowY + 10, ship.description, {
         fontFamily: pixelFont,
         fontSize: "7px",
         color: "#adc7e8",
-        wordWrap: { width: width * 0.48 },
+        wordWrap: { width: width * 0.44 },
       })
       .setOrigin(0, 0.5)
       .setDepth(123);
@@ -812,21 +911,14 @@ function openStoreModal(scene) {
 
     scene.events.off("shutdown", onSceneShutdown);
 
+    // Remove per-row listeners
     rows.forEach((row) => {
-      if (
-        row.actionButton &&
-        row.actionButton.active &&
-        row._onActionButtonClick
-      ) {
+      if (row.actionButton && row.actionButton.active && row._onActionButtonClick) {
         row.actionButton.off("pointerdown", row._onActionButtonClick);
       }
     });
 
-    if (scene.input) {
-      scene.input.off("pointerup", onPointerUp);
-      scene.input.off("pointermove", onPointerMove);
-    }
-
+    // Destroy all modal items
     modalItems.forEach((item) => {
       if (item && item.active) item.destroy();
     });
@@ -941,12 +1033,17 @@ if (!Scene0.prototype.__shipStorePatched) {
 }
 
 if (typeof window !== "undefined") {
-  const ownedShips = persistOwnedShips(getOwnedShips());
+  const ownedShips = TEST_UNLOCK_ALL_SHIPS
+    ? getOwnedShips()
+    : persistOwnedShips(getOwnedShips());
   const equippedShipId = getEquippedShipId();
 
   if (!ownedShips.includes(equippedShipId)) {
     try {
-      window.localStorage.setItem(EQUIPPED_SHIP_STORAGE_KEY, DEFAULT_SHIP.id);
+      const storage = getEquipmentStorage();
+      if (storage) {
+        storage.setItem(EQUIPPED_SHIP_STORAGE_KEY, DEFAULT_SHIP.id);
+      }
     } catch {
       // Ignora falha de persistencia e mantem padrao em memoria.
     }

@@ -37,6 +37,7 @@ class scene0 extends Phaser.Scene {
     this.countdownNumberSize = "64px";
     this.countdownMessageSize = "48px";
     this.playerShieldSize = 104;
+    this.playerShieldLargeSize = 132;
     this.playerShieldOffsetX = 2;
     this.playerShieldOffsetY = 50;
     this.reloadOrbSize = 22;
@@ -46,8 +47,8 @@ class scene0 extends Phaser.Scene {
       { x: 17, y: -63 },
     ];
     this.botReloadOrbOffsets = [
-      { x: -10, y: 67 },
-      { x: 12, y: 67 },
+      { x: -20, y: 63 },
+      { x: 17, y: 63 },
     ];
     this.playerReloadOrbs = [];
     this.botReloadOrbs = [];
@@ -68,7 +69,7 @@ class scene0 extends Phaser.Scene {
       to3sAtRound: 7,
       to2sAtRound: 16,
       to1sAtRound: 28,
-      toExact1sAtRound: 36,
+      toExact1sAtRound: 38,
     };
     this.mapSpeedByPhase = {
       phase5s: 0.29,
@@ -81,6 +82,7 @@ class scene0 extends Phaser.Scene {
     this.countdownText;
     this.actionExecuted = false; // Controla se uma ação foi executada nesta rodada
     this.selectedAction = null; // Armazena qual ação foi selecionada
+    this.playerActionAppliedRound = -1;
     this.botController = new BotController();
     this.botSelectedAction = null;
     this.botShotsLoaded = 0;
@@ -88,6 +90,8 @@ class scene0 extends Phaser.Scene {
     this.botTiroTween = null;
     this.botShield = null;
     this.botShieldActive = false;
+    this.botActionAppliedRound = -1;
+    this.botShieldFadingOut = false;
     this.botShieldTimerEvent = null;
     this.botAmmoText = null;
     this.player1Label = null;
@@ -125,6 +129,58 @@ class scene0 extends Phaser.Scene {
 
     const equippedShip = window.LojaNaves?.getEquippedShip?.();
     this.applyShipToSprite(this.player, equippedShip, true);
+    this.applyShieldSizeForShip(this.shield, equippedShip);
+  }
+
+  getShieldSizeForShip(ship) {
+    if (!ship?.id) return this.playerShieldSize;
+
+    if (ship.id === "fragata-neon" || ship.id === "fragata-neon-vermelha") {
+      return this.playerShieldLargeSize;
+    }
+
+    return this.playerShieldSize;
+  }
+
+  applyShieldSizeForShip(shield, ship) {
+    if (!shield) return;
+
+    const shieldSize = this.getShieldSizeForShip(ship);
+    shield.setDisplaySize(shieldSize, shieldSize);
+  }
+
+  cloneReloadEffect(reloadEffect) {
+    if (!reloadEffect) return null;
+
+    return {
+      ...reloadEffect,
+      offsets: Array.isArray(reloadEffect.offsets)
+        ? reloadEffect.offsets.map((offset) => ({
+            x: offset.x,
+            y: offset.y,
+          }))
+        : [],
+    };
+  }
+
+  getMirroredReloadEffectConfigForShip(
+    ship,
+    fallbackSize = this.botReloadOrbSize,
+    fallbackOffsets = [],
+  ) {
+    const baseConfig = this.getReloadEffectConfigForShip(
+      ship,
+      fallbackSize,
+      fallbackOffsets,
+    );
+
+    return {
+      ...baseConfig,
+      offsets: baseConfig.offsets.map((offset) => ({
+        x: offset.x,
+        y: -offset.y,
+      })),
+    };
   }
 
   applyShipToSprite(sprite, ship, isPlayer1 = true) {
@@ -165,18 +221,50 @@ class scene0 extends Phaser.Scene {
 
   syncRemotePlayerState(remotePlayer) {
     if (!remotePlayer || !this.player2 || typeof window === "undefined") return;
+    // Ignore remote updates when the local match is over to avoid
+    // reactivating sprites that were intentionally hidden on defeat.
+    if (this.gameOver) return;
 
     this.player2.setActive(true).setVisible(true);
 
     if (remotePlayer.ship) {
       this.applyShipToSprite(this.player2, remotePlayer.ship, false);
+      this.applyShieldSizeForShip(this.botShield, remotePlayer.ship);
+      this.refreshBotReloadEffectConfigFromShip(remotePlayer.ship);
+      this.applyReloadEffectStyle(this.botReloadOrbs, this.botReloadEffectConfig);
     }
 
     if (typeof remotePlayer.shieldActive === "boolean") {
+      const wasBotShieldActive = this.botShieldActive;
       this.botShieldActive = remotePlayer.shieldActive;
-      this.botShield.setVisible(this.botShieldActive);
-      if (this.botShieldActive) {
-        this.botShield.setAlpha(1);
+
+      // Normalize remote-driven visibility/tween state so the shield doesn't
+      // flicker due to overlapping tweens or transient network updates.
+      // If remote says the bot's shield is now active, show it immediately and
+      // kill any fade-out tweens. If remote says it's inactive, run the same
+      // fade-out path used locally so behaviour is consistent.
+      if (this.botShieldActive && !wasBotShieldActive) {
+        // Show immediately
+        this.tweens.killTweensOf(this.botShield);
+        this.botShieldFadingOut = false;
+        this.botShield.setVisible(true).setAlpha(1);
+      } else if (!this.botShieldActive && wasBotShieldActive) {
+        // Start fade out in a controlled way
+        this.tweens.killTweensOf(this.botShield);
+        this.botShieldFadingOut = true;
+        this.tweens.add({
+          targets: this.botShield,
+          alpha: 0,
+          duration: 500,
+          ease: "Linear",
+          onComplete: () => {
+            this.botShieldFadingOut = false;
+            this.botShieldActive = false;
+            // Hide the shield; do not modify alpha here to avoid any visual jump
+            // or accidental single-frame visibility caused by restoring alpha.
+            this.botShield.setVisible(false);
+          },
+        });
       }
     }
 
@@ -268,9 +356,11 @@ class scene0 extends Phaser.Scene {
           ? {
               textureKey: equippedShip.textureKey,
               frameKey: equippedShip.frameKey,
+              id: equippedShip.id,
               playerScale: equippedShip.playerScale,
               flipYForPlayer1: equippedShip.flipYForPlayer1,
               tint: equippedShip.tint,
+              reloadEffect: this.cloneReloadEffect(equippedShip.reloadEffect),
             }
           : null,
         shieldActive: this.shieldActive,
@@ -300,6 +390,7 @@ class scene0 extends Phaser.Scene {
       playerState.roundPhaseEndsAtMs,
       ship.textureKey,
       ship.frameKey,
+      ship.id,
       ship.playerScale,
       ship.flipYForPlayer1,
       ship.tint,
@@ -366,21 +457,14 @@ class scene0 extends Phaser.Scene {
       this.reloadOrbSize,
       this.playerReloadOrbOffsets,
     );
-    this.botReloadEffectConfig = {
-      textureKey: "sheet",
-      frameKey: "expb_02",
-      displaySize: this.botReloadOrbSize,
-      baseScale: 0.75,
-      peakScale: 1.35,
-      duration: 160,
-      hold: 90,
-      resetScale: 0.75,
-      depth: 35,
-      offsets: this.botReloadOrbOffsets.map((offset) => ({
-        x: offset.x,
-        y: offset.y,
-      })),
-    };
+  }
+
+  refreshBotReloadEffectConfigFromShip(ship) {
+    this.botReloadEffectConfig = this.getMirroredReloadEffectConfigForShip(
+      ship,
+      this.botReloadOrbSize,
+      this.botReloadOrbOffsets,
+    );
   }
 
   applyReloadEffectStyle(orbs, config) {
@@ -441,6 +525,27 @@ class scene0 extends Phaser.Scene {
     this.countdownText.setText("Preparar...");
     this.countdownText.setFill("#00ff00");
     this.countdownText.setFontSize(this.countdownMessageSize);
+    // Forçar remoção de quaisquer escudos visíveis/tweens quando iniciar
+    // uma nova preparação de rodada para evitar efeitos residuais.
+    try {
+      if (this.tweens) {
+        this.tweens.killTweensOf(this.shield);
+        this.tweens.killTweensOf(this.botShield);
+      }
+    } catch (e) {
+      /* ignore */
+    }
+    if (this.shield) {
+      this.shieldTimerEvent = null;
+      this.shieldActive = false;
+      this.shield.setVisible(false).setAlpha(0);
+    }
+    if (this.botShield) {
+      this.botShieldTimerEvent = null;
+      this.botShieldActive = false;
+      this.botShieldFadingOut = false;
+      this.botShield.setVisible(false).setAlpha(0);
+    }
   }
 
   beginCountdownPhase(nowMs) {
@@ -449,19 +554,24 @@ class scene0 extends Phaser.Scene {
     this.roundCount += 1;
     this.updateBackgroundSpeedForRound();
 
+    // Garantir que quaisquer tweens do escudo sejam mortos e o escudo fique
+    // escondido/transparent quando uma nova contagem regressiva iniciar.
     if (this.shieldTimerEvent) {
       this.shieldTimerEvent.remove(false);
       this.shieldTimerEvent = null;
     }
+    if (this.tweens) this.tweens.killTweensOf(this.shield);
     this.shieldActive = false;
-    this.shield.setAlpha(1).setVisible(false);
+    if (this.shield) this.shield.setVisible(false).setAlpha(0);
 
     if (this.botShieldTimerEvent) {
       this.botShieldTimerEvent.remove(false);
       this.botShieldTimerEvent = null;
     }
+    if (this.tweens) this.tweens.killTweensOf(this.botShield);
     this.botShieldActive = false;
-    this.botShield.setAlpha(1).setVisible(false);
+    this.botShieldFadingOut = false;
+    if (this.botShield) this.botShield.setVisible(false).setAlpha(0);
 
     this.updateReloadEffectPositions();
     [...this.playerReloadOrbs, ...this.botReloadOrbs].forEach((orb) => {
@@ -522,6 +632,7 @@ class scene0 extends Phaser.Scene {
     }
 
     if (this.botShield.visible) {
+      this.botShieldFadingOut = true;
       this.tweens.killTweensOf(this.botShield);
       this.tweens.add({
         targets: this.botShield,
@@ -529,8 +640,11 @@ class scene0 extends Phaser.Scene {
         duration: 500,
         ease: "Linear",
         onComplete: () => {
+          // Ensure we clear the fading flag and hide the shield. Don't touch
+          // alpha here — restoring it caused a visible flicker in some cases.
+          this.botShieldFadingOut = false;
           this.botShieldActive = false;
-          this.botShield.setAlpha(1).setVisible(false);
+          this.botShield.setVisible(false);
         },
       });
     }
@@ -1038,8 +1152,13 @@ class scene0 extends Phaser.Scene {
     // Escudo do bot inicia escondido sobre o player2.
     this.botShield = this.add
       .image(this.player2.x, this.player2.y + 54, "shield")
-      .setDisplaySize(126, 126)
+      .setDisplaySize(this.playerShieldSize, this.playerShieldSize)
       .setVisible(false);
+
+    this.applyShieldSizeForShip(
+      this.shield,
+      window.LojaNaves?.getEquippedShip?.(),
+    );
 
     // Texto de contagem regressiva no centro da tela
     this.countdownText = this.add
@@ -1068,16 +1187,17 @@ class scene0 extends Phaser.Scene {
       .setDepth(35);
 
     // HUD de teste para visualizar a munição atual do bot.
+    // Posicionado abaixo do rótulo "Player 2" (canto superior direito).
     this.botAmmoText = this.add
-      .text(14, 56, `Munição: ${this.botShotsLoaded}`, {
-        fontSize: "12px",
+      .text(this.scale.width - 6, 24, `Munição: ${this.botShotsLoaded}`, {
+        fontSize: "11px",
         fontFamily: this.uiFontFamily,
         fill: "#ffcc66",
         fontStyle: "bold",
         backgroundColor: "rgba(0,0,0,0.2)",
-        padding: { x: 6, y: 3 },
+        padding: { x: 4, y: 2 },
       })
-      .setOrigin(0, 0)
+      .setOrigin(1, 0)
       .setAlpha(1)
       .setDepth(40);
 
@@ -1427,7 +1547,7 @@ class scene0 extends Phaser.Scene {
     this.player2.clearTint();
 
     const showVictory = () => {
-      this.player2.setVisible(false);
+      this.player2.setVisible(false).setActive(false);
       this.showEndMessageWithFade("Vitória!");
       this.scheduleReturnToMenu();
     };
@@ -1554,6 +1674,9 @@ class scene0 extends Phaser.Scene {
 
   createReloadEffects() {
     this.refreshReloadEffectConfigs();
+    this.refreshBotReloadEffectConfigFromShip(
+      window.LojaNaves?.getEquippedShip?.(),
+    );
 
     const createOrb = (config) =>
       this.add
@@ -1868,7 +1991,8 @@ class scene0 extends Phaser.Scene {
     });
 
     if (this.botAmmoText) {
-      this.botAmmoText.setPosition(p2StartX - 10, p2Y + 22);
+      const labelY = this.player2Label ? this.player2Label.y + this.player2Label.height + 4 : p2Y + 22;
+      this.botAmmoText.setOrigin(1, 0).setPosition(this.scale.width - 6, labelY);
     }
 
     // Reposiciona labels dos jogadores quando a HUD é recalculada
@@ -1932,6 +2056,8 @@ class scene0 extends Phaser.Scene {
 
     // Executa apenas a ação selecionada
     if (!this.selectedAction) return;
+    if (this.playerActionAppliedRound === this.roundCount) return;
+    this.playerActionAppliedRound = this.roundCount;
 
     if (this.selectedAction === "shoot") {
       // So permite tiro se houver ao menos uma carga acumulada.
@@ -2022,6 +2148,8 @@ class scene0 extends Phaser.Scene {
       return;
 
     if (!this.botSelectedAction) return;
+    if (this.botActionAppliedRound === this.roundCount) return;
+    this.botActionAppliedRound = this.roundCount;
 
     if (this.botSelectedAction === "shoot") {
       if (this.botShotsLoaded > 0 && !this.botTiro.visible) {
@@ -2067,6 +2195,7 @@ class scene0 extends Phaser.Scene {
       }
     } else if (this.botSelectedAction === "armor") {
       this.botShieldActive = true;
+      this.botShieldFadingOut = false;
       if (this.shieldSfx) {
         this.shieldSfx.play({ volume: 0.45 });
       }
@@ -2083,7 +2212,18 @@ class scene0 extends Phaser.Scene {
       this.botShieldTimerEvent = this.time.delayedCall(2500, () => {
         if (!this.scene || !this.scene.isActive() || this.gameOver) return;
         this.botShieldActive = false;
-        this.botShield.setVisible(false);
+        this.botShieldFadingOut = true;
+        this.tweens.killTweensOf(this.botShield);
+        this.tweens.add({
+          targets: this.botShield,
+          alpha: 0,
+          duration: 150,
+          ease: "Linear",
+          onComplete: () => {
+            this.botShieldFadingOut = false;
+            this.botShield.setAlpha(1).setVisible(false);
+          },
+        });
         this.botShieldTimerEvent = null;
       });
     }
