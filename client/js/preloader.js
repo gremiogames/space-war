@@ -52,6 +52,7 @@ class preloader extends Phaser.Scene {
 
     this.load.image("shield", "spr_shield.png");
     this.load.image("heart", "HEART 1.png");
+    this.load.image("coinIcon", "moeda.png");
 
     this.load.image("sheet", "map-assets/spritesheet.png");
 
