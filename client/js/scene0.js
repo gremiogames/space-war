@@ -154,7 +154,8 @@ class scene0 extends Phaser.Scene {
       // Shift shield slightly to the right for this family; it will be mirrored for the other player
       offset = { x: 2, y: -5 };
     } else if (
-      shipId?.startsWith("fragata-rubi") || shipId?.startsWith("space-y")
+      shipId?.startsWith("fragata-rubi") ||
+      shipId?.startsWith("space-y")
     ) {
       offset = { x: 0, y: 9 };
     }
