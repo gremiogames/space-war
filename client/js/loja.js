@@ -6,7 +6,7 @@ const EQUIPPED_SHIP_STORAGE_KEY = "spaceWarEquippedShip";
 const SHIPS_UPDATED_EVENT = "space-war-ships-updated";
 const TEST_UNLOCK_ALL_SHIPS = true;
 
-const SHIPS = [
+const BASE_SHIPS = [
   {
     id: "falcao-mk1",
     name: "Falcao MK-I",
@@ -37,8 +37,8 @@ const SHIPS = [
   },
   {
     id: "fragata-neon-vermelha",
-    name: "Nave da Tropa de Elite Marciana",
-    description: "Os principais representantes da frota marciana",
+    name: "OVNI Marciano",
+    description: "Quem disse que OVNIS tinha forma de disco?",
     price: 0,
     textureKey: "ship-fragata-neon",
     assetPath: "assets/Alien-Frigate(3).png",
@@ -47,7 +47,6 @@ const SHIPS = [
     playerScale: 1.25,
     previewScale: 0.68,
     flipYInStorePreview: true,
-
     flipYForPlayer1: true,
     reloadEffect: {
       textureKey: "sheet",
@@ -126,7 +125,7 @@ const SHIPS = [
   },
   {
     id: "fragata-rubi",
-    name: "Space X",
+    name: "Space Y",
     description: "Nave espacial da frota Humana de Defesa",
     price: 250,
     textureKey: "ship-atlas-core",
@@ -136,7 +135,7 @@ const SHIPS = [
     playerScale: 1.45,
     previewScale: 1.05,
     flipYInStorePreview: true,
-    tint: 0x9966ff,
+    tint: 0xffffff,
     flipYForPlayer1: true,
     reloadEffect: {
       textureKey: "sheet",
@@ -155,9 +154,9 @@ const SHIPS = [
     defaultOwned: false,
   },
   {
-    id: "space-x-azul",
-    name: "Space Y",
-    description: "Nave espacial da frota Humana de Sentinela",
+    id: "space-y-dourada",
+    name: "Space Z",
+    description: "Nave espacial dourada da frota Humana de Defesa, só que dourada...",
     price: 250,
     textureKey: "ship-atlas-core",
     assetPath: "assets/map-assets/spritesheet.png",
@@ -166,6 +165,7 @@ const SHIPS = [
     playerScale: 1.45,
     previewScale: 1.05,
     flipYInStorePreview: true,
+    tint: 0xffd24d,
     flipYForPlayer1: true,
     reloadEffect: {
       textureKey: "sheet",
@@ -179,6 +179,96 @@ const SHIPS = [
       offsets: [
         { x: -16, y: -63 },
         { x: 17, y: -63 },
+      ],
+    },
+    defaultOwned: false,
+  },
+  {
+    id: "fragata-neon-azul",
+    name: "Nave Espacial da Tropa Marciana",
+    description: "Nave de combate avançada da frota marciana",
+    price: 0,
+    textureKey: "ship-fragata-neon",
+    assetPath: "assets/Alien-Frigate(3).png",
+    frameWidth: 110,
+    frameHeight: 110,
+    playerScale: 1.25,
+    previewScale: 0.68,
+    flipYInStorePreview: true,
+    tint: 0x4da3ff,
+    flipYForPlayer1: true,
+    reloadEffect: {
+      textureKey: "sheet",
+      frameKey: "expb_02",
+      displaySize: 22,
+      baseScale: 0.75,
+      peakScale: 1.35,
+      duration: 160,
+      hold: 90,
+      resetScale: 0.75,
+      offsets: [
+        { x: -12, y: -70 },
+        { x: 12, y: -70 },
+      ],
+    },
+    defaultOwned: false,
+  },
+  {
+    id: "fragata-neon-dourado",
+    name: "OVNI dourado",
+    description: "As vezes você olha para o sol e acha que está vendo o Sol, mas na verdade é só essa nave",
+    price: 0,
+    textureKey: "ship-fragata-neon",
+    assetPath: "assets/Alien-Frigate(3).png",
+    frameWidth: 110,
+    frameHeight: 110,
+    playerScale: 1.25,
+    previewScale: 0.68,
+    flipYInStorePreview: true,
+    tint: 0xffd24d,
+    flipYForPlayer1: true,
+    reloadEffect: {
+      textureKey: "sheet",
+      frameKey: "expb_02",
+      displaySize: 22,
+      baseScale: 0.75,
+      peakScale: 1.35,
+      duration: 160,
+      hold: 90,
+      resetScale: 0.75,
+      offsets: [
+        { x: -12, y: -70 },
+        { x: 12, y: -70 },
+      ],
+    },
+    defaultOwned: false,
+  },
+  {
+    id: "fragata-neon-roxo",
+    name: "Nave da Tropa Marciana Camuflada",
+    description: "Os Humanos se perguntam com o que ela se camufla, nunca descobriram",
+    price: 0,
+    textureKey: "ship-fragata-neon",
+    assetPath: "assets/Alien-Frigate(3).png",
+    frameWidth: 110,
+    frameHeight: 110,
+    playerScale: 1.25,
+    previewScale: 0.68,
+    flipYInStorePreview: true,
+    tint: 0xb56dff,
+    flipYForPlayer1: true,
+    reloadEffect: {
+      textureKey: "sheet",
+      frameKey: "expb_02",
+      displaySize: 22,
+      baseScale: 0.75,
+      peakScale: 1.35,
+      duration: 160,
+      hold: 90,
+      resetScale: 0.75,
+      offsets: [
+        { x: -12, y: -70 },
+        { x: 12, y: -70 },
       ],
     },
     defaultOwned: false,
@@ -214,6 +304,8 @@ const SHIPS = [
     defaultOwned: true,
   },
 ];
+
+const SHIPS = [...BASE_SHIPS];
 
 const SHIPS_BY_ID = new Map(SHIPS.map((ship) => [ship.id, ship]));
 const DEFAULT_SHIP = SHIPS.find((ship) => ship.defaultOwned) || SHIPS[0];
@@ -1056,6 +1148,7 @@ if (typeof window !== "undefined") {
 
 window.LojaNaves = {
   getShips: () => [...SHIPS],
+  getShipById,
   getOwnedShips,
   getEquippedShip,
   getReloadEffectForShip,

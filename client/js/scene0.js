@@ -128,8 +128,57 @@ class scene0 extends Phaser.Scene {
     if (!this.player || typeof window === "undefined") return;
 
     const equippedShip = window.LojaNaves?.getEquippedShip?.();
-    this.applyShipToSprite(this.player, equippedShip, true);
+    this.playerEquippedShip = this.resolveShipDefinition(equippedShip);
+    this.applyShipToSprite(this.player, this.playerEquippedShip, true);
     this.applyShieldSizeForShip(this.shield, equippedShip);
+  }
+
+  resolveShipDefinition(ship) {
+    if (!ship) return ship;
+
+    const shipFromStore = window.LojaNaves?.getShipById?.(ship.id);
+    if (!shipFromStore) return ship;
+
+    return {
+      ...shipFromStore,
+      ...ship,
+      frameRect: ship.frameRect || shipFromStore.frameRect,
+    };
+  }
+
+  getShieldFineTuneOffsetForShip(ship, isPlayer1 = true) {
+    const shipId = ship?.id;
+    let offset = { x: 0, y: 0 };
+
+    if (shipId?.startsWith("fragata-neon")) {
+      offset = { x: 4, y: -5 };
+    } else if (shipId?.startsWith("fragata-rubi")) {
+      offset = { x: 0, y: 6 };
+    }
+
+    if (!isPlayer1) {
+      return { x: -offset.x, y: -offset.y };
+    }
+
+    return offset;
+  }
+
+  getPlayerShieldPosition(ship) {
+    const offset = this.getShieldFineTuneOffsetForShip(ship, true);
+
+    return {
+      x: this.player.x - this.playerShieldOffsetX + offset.x,
+      y: this.player.y - this.playerShieldOffsetY + offset.y,
+    };
+  }
+
+  getBotShieldPosition(ship) {
+    const offset = this.getShieldFineTuneOffsetForShip(ship, false);
+
+    return {
+      x: this.player2.x + offset.x,
+      y: this.player2.y + 54 + offset.y,
+    };
   }
 
   getShieldSizeForShip(ship) {
@@ -184,37 +233,40 @@ class scene0 extends Phaser.Scene {
   }
 
   applyShipToSprite(sprite, ship, isPlayer1 = true) {
-    if (!sprite || !ship || !this.textures.exists(ship.textureKey)) return;
+    const resolvedShip = this.resolveShipDefinition(ship);
+    if (!sprite || !resolvedShip || !this.textures.exists(resolvedShip.textureKey)) return;
 
-    if (ship.frameRect && ship.frameKey) {
-      const texture = this.textures.get(ship.textureKey);
-      if (texture && !texture.has(ship.frameKey)) {
+    if (resolvedShip.frameRect && resolvedShip.frameKey) {
+      const texture = this.textures.get(resolvedShip.textureKey);
+      if (texture && !texture.has(resolvedShip.frameKey)) {
         texture.add(
-          ship.frameKey,
+          resolvedShip.frameKey,
           0,
-          ship.frameRect.x,
-          ship.frameRect.y,
-          ship.frameRect.w,
-          ship.frameRect.h,
+          resolvedShip.frameRect.x,
+          resolvedShip.frameRect.y,
+          resolvedShip.frameRect.w,
+          resolvedShip.frameRect.h,
         );
       }
     }
 
-    sprite.setTexture(ship.textureKey, ship.frameKey || 0);
+    sprite.setTexture(resolvedShip.textureKey, resolvedShip.frameKey || 0);
 
-    if (ship.playerScale) {
-      sprite.setScale(ship.playerScale);
+    if (resolvedShip.playerScale) {
+      sprite.setScale(resolvedShip.playerScale);
     }
 
     sprite.setFlipY(
       isPlayer1
-        ? Boolean(ship.flipYForPlayer1)
-        : !Boolean(ship.flipYForPlayer1),
+        ? Boolean(resolvedShip.flipYForPlayer1)
+        : !Boolean(resolvedShip.flipYForPlayer1),
     );
 
-    if (ship.tint && ship.tint !== 0xffffff) {
-      sprite.setTint(ship.tint);
+    if (resolvedShip.tint && resolvedShip.tint !== 0xffffff) {
+      sprite.__baseTint = resolvedShip.tint;
+      sprite.setTint(resolvedShip.tint);
     } else {
+      sprite.__baseTint = null;
       sprite.clearTint();
     }
   }
@@ -228,9 +280,10 @@ class scene0 extends Phaser.Scene {
     this.player2.setActive(true).setVisible(true);
 
     if (remotePlayer.ship) {
-      this.applyShipToSprite(this.player2, remotePlayer.ship, false);
-      this.applyShieldSizeForShip(this.botShield, remotePlayer.ship);
-      this.refreshBotReloadEffectConfigFromShip(remotePlayer.ship);
+      this.botEquippedShip = this.resolveShipDefinition(remotePlayer.ship);
+      this.applyShipToSprite(this.player2, this.botEquippedShip, false);
+      this.applyShieldSizeForShip(this.botShield, this.botEquippedShip);
+      this.refreshBotReloadEffectConfigFromShip(this.botEquippedShip);
       this.applyReloadEffectStyle(
         this.botReloadOrbs,
         this.botReloadEffectConfig,
@@ -705,6 +758,7 @@ class scene0 extends Phaser.Scene {
     this.selectedAction = null;
     this.botSelectedAction = null;
     this.beginPreparePhase(matchStartAt - 1000);
+    this.updateRoundClockState();
   }
 
   preload() {
@@ -1150,18 +1204,22 @@ class scene0 extends Phaser.Scene {
     this.botTiro.setDisplaySize(30, 50);
 
     // Escudo inicia escondido sobre o player.
+    const initialPlayerShieldPosition = this.getPlayerShieldPosition(
+      window.LojaNaves?.getEquippedShip?.(),
+    );
     this.shield = this.add
       .image(
-        this.player.x - this.playerShieldOffsetX,
-        this.player.y - this.playerShieldOffsetY,
+        initialPlayerShieldPosition.x,
+        initialPlayerShieldPosition.y,
         "shield",
       )
       .setDisplaySize(this.playerShieldSize, this.playerShieldSize)
       .setVisible(false);
 
     // Escudo do bot inicia escondido sobre o player2.
+    const initialBotShieldPosition = this.getBotShieldPosition(null);
     this.botShield = this.add
-      .image(this.player2.x, this.player2.y + 54, "shield")
+      .image(initialBotShieldPosition.x, initialBotShieldPosition.y, "shield")
       .setDisplaySize(this.playerShieldSize, this.playerShieldSize)
       .setVisible(false);
 
@@ -1195,21 +1253,6 @@ class scene0 extends Phaser.Scene {
       )
       .setOrigin(0, 0.5)
       .setDepth(35);
-
-    // HUD de teste para visualizar a munição atual do bot.
-    // Posicionado abaixo do rótulo "Player 2" (canto superior direito).
-    this.botAmmoText = this.add
-      .text(this.scale.width - 6, 24, `Munição: ${this.botShotsLoaded}`, {
-        fontSize: "11px",
-        fontFamily: this.uiFontFamily,
-        fill: "#ffcc66",
-        fontStyle: "bold",
-        backgroundColor: "rgba(0,0,0,0.2)",
-        padding: { x: 4, y: 2 },
-      })
-      .setOrigin(1, 0)
-      .setAlpha(1)
-      .setDepth(40);
 
     // Labels dos jogadores (visíveis na HUD)
     this.player2Label = this.add
@@ -1313,6 +1356,11 @@ class scene0 extends Phaser.Scene {
   }
 
   showPrepareAndStartRound() {
+    if (this.matchStartedAtMs) {
+      this.updateRoundClockState();
+      return;
+    }
+
     this.disableAllButtons(true);
     this.countdownText.setText("Aguardando sincronização...");
     this.countdownText.setFill("#00ff00");
@@ -1472,9 +1520,9 @@ class scene0 extends Phaser.Scene {
     this.tweens.killTweensOf(target);
     target.setAlpha(1);
 
-    // Guardar o tint original antes de mudá-lo
-    const originalTint = target._tintTopLeft;
-    const hadTint = target.isTinted;
+    // Restaurar a cor equipada do navio, não um valor interno do Phaser.
+    const originalTint = target.__baseTint;
+    const hadTint = Boolean(originalTint) && originalTint !== 0xffffff;
 
     target.setTint(0xff6666);
 
@@ -1487,7 +1535,7 @@ class scene0 extends Phaser.Scene {
       ease: "Linear",
       onComplete: () => {
         // Restaurar o tint original se a nave tinha tint
-        if (hadTint && originalTint) {
+        if (hadTint) {
           target.setTint(originalTint);
         } else {
           target.clearTint();
@@ -2000,15 +2048,6 @@ class scene0 extends Phaser.Scene {
       heart.setPosition(p2StartX + index * heartSpacing, p2Y);
     });
 
-    if (this.botAmmoText) {
-      const labelY = this.player2Label
-        ? this.player2Label.y + this.player2Label.height + 4
-        : p2Y + 22;
-      this.botAmmoText
-        .setOrigin(1, 0)
-        .setPosition(this.scale.width - 6, labelY);
-    }
-
     // Reposiciona labels dos jogadores quando a HUD é recalculada
     if (this.player2Label) {
       this.player2Label.setPosition(this.scale.width - 14, 6);
@@ -2133,8 +2172,8 @@ class scene0 extends Phaser.Scene {
       }
       this.showShieldWithQuickFade(
         this.shield,
-        this.player.x - this.playerShieldOffsetX,
-        this.player.y - this.playerShieldOffsetY,
+        this.getPlayerShieldPosition(this.playerEquippedShip).x,
+        this.getPlayerShieldPosition(this.playerEquippedShip).y,
       );
 
       // Evita múltiplos timers concorrentes do escudo.
@@ -2215,8 +2254,8 @@ class scene0 extends Phaser.Scene {
       }
       this.showShieldWithQuickFade(
         this.botShield,
-        this.player2.x,
-        this.player2.y + 54,
+        this.getBotShieldPosition(this.botEquippedShip).x,
+        this.getBotShieldPosition(this.botEquippedShip).y,
       );
 
       if (this.botShieldTimerEvent) {
@@ -2249,14 +2288,13 @@ class scene0 extends Phaser.Scene {
     this.updateRoundClockState();
 
     if (this.shield && this.player) {
-      this.shield.setPosition(
-        this.player.x - this.playerShieldOffsetX,
-        this.player.y - this.playerShieldOffsetY,
-      );
+      const shieldPosition = this.getPlayerShieldPosition(this.playerEquippedShip);
+      this.shield.setPosition(shieldPosition.x, shieldPosition.y);
     }
 
     if (this.botShield && this.player2) {
-      this.botShield.setPosition(this.player2.x, this.player2.y + 54);
+      const botShieldPosition = this.getBotShieldPosition(this.botEquippedShip);
+      this.botShield.setPosition(botShieldPosition.x, botShieldPosition.y);
     }
 
     this.updateReloadEffectPositions();
