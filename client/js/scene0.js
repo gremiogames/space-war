@@ -236,7 +236,12 @@ class scene0 extends Phaser.Scene {
 
   applyShipToSprite(sprite, ship, isPlayer1 = true) {
     const resolvedShip = this.resolveShipDefinition(ship);
-    if (!sprite || !resolvedShip || !this.textures.exists(resolvedShip.textureKey)) return;
+    if (
+      !sprite ||
+      !resolvedShip ||
+      !this.textures.exists(resolvedShip.textureKey)
+    )
+      return;
 
     if (resolvedShip.frameRect && resolvedShip.frameKey) {
       const texture = this.textures.get(resolvedShip.textureKey);
@@ -484,11 +489,17 @@ class scene0 extends Phaser.Scene {
     // Allow fragata-neon variants to inherit the base fragata-neon reloadEffect
     let reloadEffect = ship?.reloadEffect || {};
     try {
-      if (ship?.id?.startsWith("fragata-neon") && typeof window !== "undefined") {
+      if (
+        ship?.id?.startsWith("fragata-neon") &&
+        typeof window !== "undefined"
+      ) {
         const base = window.LojaNaves?.getShipById?.("fragata-neon");
         if (base && base.reloadEffect) {
           // Base values first, then per-ship override
-          reloadEffect = { ...(base.reloadEffect || {}), ...(reloadEffect || {}) };
+          reloadEffect = {
+            ...(base.reloadEffect || {}),
+            ...(reloadEffect || {}),
+          };
         }
       }
     } catch (e) {
@@ -2302,7 +2313,9 @@ class scene0 extends Phaser.Scene {
     this.updateRoundClockState();
 
     if (this.shield && this.player) {
-      const shieldPosition = this.getPlayerShieldPosition(this.playerEquippedShip);
+      const shieldPosition = this.getPlayerShieldPosition(
+        this.playerEquippedShip,
+      );
       this.shield.setPosition(shieldPosition.x, shieldPosition.y);
     }
 

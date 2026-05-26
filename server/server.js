@@ -38,7 +38,11 @@ io.on("connection", (socket) => {
   // event (rare race condition where a late joiner could miss the broadcast).
   socket.on("join-room", (room) => {
     const roomState = getOrCreateRoomMatchState(room);
-    if (roomState && typeof roomState.matchStartAt === "number" && roomState.matchStartAt > Date.now()) {
+    if (
+      roomState &&
+      typeof roomState.matchStartAt === "number" &&
+      roomState.matchStartAt > Date.now()
+    ) {
       socket.emit("scene0-match-start", {
         matchStartAt: roomState.matchStartAt,
         serverTime: Date.now(),
