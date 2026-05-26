@@ -156,7 +156,8 @@ const BASE_SHIPS = [
   {
     id: "space-y-dourada",
     name: "Space Z",
-    description: "Nave espacial dourada da frota Humana de Defesa, só que dourada...",
+    description:
+      "Nave espacial dourada da frota Humana de Defesa, só que dourada...",
     price: 250,
     textureKey: "ship-atlas-core",
     assetPath: "assets/map-assets/spritesheet.png",
@@ -216,7 +217,8 @@ const BASE_SHIPS = [
   {
     id: "fragata-neon-dourado",
     name: "OVNI dourado",
-    description: "As vezes você olha para o sol e acha que está vendo o Sol, mas na verdade é só essa nave",
+    description:
+      "As vezes você olha para o sol e acha que está vendo o Sol, mas na verdade é só essa nave",
     price: 0,
     textureKey: "ship-fragata-neon",
     assetPath: "assets/Alien-Frigate(3).png",
@@ -246,7 +248,8 @@ const BASE_SHIPS = [
   {
     id: "fragata-neon-roxo",
     name: "Nave da Tropa Marciana Camuflada",
-    description: "Os Humanos se perguntam com o que ela se camufla, nunca descobriram",
+    description:
+      "Os Humanos se perguntam com o que ela se camufla, nunca descobriram",
     price: 0,
     textureKey: "ship-fragata-neon",
     assetPath: "assets/Alien-Frigate(3).png",
