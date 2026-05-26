@@ -19,6 +19,7 @@ function getOrCreateRoomMatchState(room) {
   if (!roomMatchState.has(room)) {
     roomMatchState.set(room, {
       matchStartAt: null,
+      latestScene0State: null,
     });
   }
 
@@ -31,12 +32,7 @@ io.on("connection", (socket) => {
   socket.on("join-room", (room) => {
     socket.join(room);
     console.log(`User ${socket.id} joined room ${room}`);
-  });
 
-  // When a socket joins a room, immediately notify it of any pending
-  // match start time so it doesn't miss the scheduled "scene0-match-start"
-  // event (rare race condition where a late joiner could miss the broadcast).
-  socket.on("join-room", (room) => {
     const roomState = getOrCreateRoomMatchState(room);
     if (
       roomState &&
@@ -69,6 +65,12 @@ io.on("connection", (socket) => {
     // Use volatile updates for realtime state to avoid queue buildup/lag.
     // Broadcast to the whole room (including sender) so every client can
     // continuously correct local clock drift from serverTime.
+    const roomState = getOrCreateRoomMatchState(room);
+    roomState.latestScene0State = {
+      ...state,
+      serverTime: Date.now(),
+    };
+
     io.to(room).volatile.emit("scene0", {
       ...state,
       serverTime: Date.now(),
@@ -93,6 +95,13 @@ io.on("connection", (socket) => {
       matchStartAt: roomState.matchStartAt,
       serverTime: now,
     });
+
+    if (roomState.latestScene0State) {
+      socket.emit("scene0", {
+        ...roomState.latestScene0State,
+        serverTime: now,
+      });
+    }
   });
 
   socket.on("disconnect", () => {
