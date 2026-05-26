@@ -488,6 +488,17 @@ class scene0 extends Phaser.Scene {
     if (!force && elapsed < requiredInterval) return;
 
     const emitter = this.game.socket.volatile || this.game.socket;
+    try {
+      console.log("[scene0] emit", {
+        ts: Date.now(),
+        signature,
+        force,
+        elapsed,
+      });
+    } catch (e) {
+      console.log("[scene0] emit", Date.now());
+    }
+
     emitter.emit("scene0", this.game.room, state);
 
     this.lastScene0SyncAt = now;
@@ -1056,8 +1067,19 @@ class scene0 extends Phaser.Scene {
     this.applyStoreShipToPlayer();
     this.refreshReloadEffectConfigs();
 
-    if (this.game.socket) {
+      if (this.game.socket) {
       this.scene0StateListener = (state) => {
+        try {
+          const sig = this.getScene0StateSignature(state);
+          console.log("[scene0] received", {
+            ts: Date.now(),
+            serverTime: state?.serverTime,
+            signature: sig,
+          });
+        } catch (e) {
+          console.log("[scene0] received (sig error)", Date.now());
+        }
+
         this.syncServerClock(state?.serverTime);
         const remotePlayer = state?.player;
         if (!remotePlayer || remotePlayer.id === this.game.socket.id) return;
@@ -1065,6 +1087,12 @@ class scene0 extends Phaser.Scene {
       };
 
       this.scene0MatchStartListener = (payload) => {
+        console.log("[scene0-match-start] received", {
+          ts: Date.now(),
+          serverTime: payload?.serverTime,
+          matchStartAt: payload?.matchStartAt,
+        });
+
         this.syncServerClock(payload?.serverTime);
 
         if (typeof payload?.matchStartAt === "number") {
@@ -1446,6 +1474,18 @@ class scene0 extends Phaser.Scene {
   }
 
   disableAllButtons(showInactiveStyle = false) {
+    try {
+      console.log("[buttons] disableAllButtons", {
+        ts: Date.now(),
+        socketId: this.game?.socket?.id,
+        matchStartedAtMs: this.matchStartedAtMs,
+        roundPhase: this.roundPhase,
+        roundCount: this.roundCount,
+      });
+    } catch (e) {
+      console.log("[buttons] disableAllButtons", Date.now());
+    }
+
     this.button.disableInteractive();
     this.buttonReload.disableInteractive();
     this.buttonArmor.disableInteractive();
@@ -2117,6 +2157,19 @@ class scene0 extends Phaser.Scene {
       !this.buttonArmor.active
     )
       return;
+
+    try {
+      console.log("[buttons] enableAllButtons", {
+        ts: Date.now(),
+        socketId: this.game?.socket?.id,
+        matchStartedAtMs: this.matchStartedAtMs,
+        roundPhase: this.roundPhase,
+        roundCount: this.roundCount,
+        lastSig: this.lastScene0StateSignature,
+      });
+    } catch (e) {
+      console.log("[buttons] enableAllButtons", Date.now());
+    }
 
     this.button.setInteractive();
     this.buttonReload.setInteractive();
