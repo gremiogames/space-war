@@ -1067,7 +1067,7 @@ class scene0 extends Phaser.Scene {
     this.applyStoreShipToPlayer();
     this.refreshReloadEffectConfigs();
 
-      if (this.game.socket) {
+    if (this.game.socket) {
       this.scene0StateListener = (state) => {
         try {
           const sig = this.getScene0StateSignature(state);
