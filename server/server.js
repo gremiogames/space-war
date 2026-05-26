@@ -33,6 +33,19 @@ io.on("connection", (socket) => {
     console.log(`User ${socket.id} joined room ${room}`);
   });
 
+  // When a socket joins a room, immediately notify it of any pending
+  // match start time so it doesn't miss the scheduled "scene0-match-start"
+  // event (rare race condition where a late joiner could miss the broadcast).
+  socket.on("join-room", (room) => {
+    const roomState = getOrCreateRoomMatchState(room);
+    if (roomState && typeof roomState.matchStartAt === "number" && roomState.matchStartAt > Date.now()) {
+      socket.emit("scene0-match-start", {
+        matchStartAt: roomState.matchStartAt,
+        serverTime: Date.now(),
+      });
+    }
+  });
+
   socket.on("select-player", (room, player) => {
     console.log(`Selected player ${player} in room ${room}`);
     socket.to(room).emit("player-selected", player);

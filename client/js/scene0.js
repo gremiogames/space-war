@@ -37,7 +37,7 @@ class scene0 extends Phaser.Scene {
     this.countdownNumberSize = "64px";
     this.countdownMessageSize = "48px";
     this.playerShieldSize = 104;
-    this.playerShieldLargeSize = 132;
+    this.playerShieldLargeSize = 150;
     this.playerShieldOffsetX = 2;
     this.playerShieldOffsetY = 50;
     this.reloadOrbSize = 22;
@@ -151,7 +151,8 @@ class scene0 extends Phaser.Scene {
     let offset = { x: 0, y: 0 };
 
     if (shipId?.startsWith("fragata-neon")) {
-      offset = { x: 4, y: -5 };
+      // Shift shield slightly to the right for this family; it will be mirrored for the other player
+      offset = { x: 2, y: -5 };
     } else if (shipId?.startsWith("fragata-rubi")) {
       offset = { x: 0, y: 6 };
     }
@@ -183,9 +184,10 @@ class scene0 extends Phaser.Scene {
 
   getShieldSizeForShip(ship) {
     if (!ship?.id) return this.playerShieldSize;
-
-    if (ship.id === "fragata-neon" || ship.id === "fragata-neon-vermelha") {
-      return this.playerShieldLargeSize;
+    // Treat all fragata-neon variants as large-shield ships and increase size slightly
+    if (ship.id.startsWith("fragata-neon")) {
+      // Larger visual shield for neon variants
+      return this.playerShieldSize + 24;
     }
 
     return this.playerShieldSize;
@@ -479,7 +481,19 @@ class scene0 extends Phaser.Scene {
     fallbackSize = this.reloadOrbSize,
     fallbackOffsets = [],
   ) {
-    const reloadEffect = ship?.reloadEffect || {};
+    // Allow fragata-neon variants to inherit the base fragata-neon reloadEffect
+    let reloadEffect = ship?.reloadEffect || {};
+    try {
+      if (ship?.id?.startsWith("fragata-neon") && typeof window !== "undefined") {
+        const base = window.LojaNaves?.getShipById?.("fragata-neon");
+        if (base && base.reloadEffect) {
+          // Base values first, then per-ship override
+          reloadEffect = { ...(base.reloadEffect || {}), ...(reloadEffect || {}) };
+        }
+      }
+    } catch (e) {
+      // ignore and continue with provided reloadEffect
+    }
     const offsets =
       Array.isArray(reloadEffect.offsets) && reloadEffect.offsets.length
         ? reloadEffect.offsets
