@@ -402,13 +402,16 @@ class scene0 extends Phaser.Scene {
     const phaseBehind =
       remoteRound === this.roundCount && remotePhaseOrder > localPhaseOrder;
     const samePhaseDrift =
-      remoteRound === this.roundCount && remotePhaseOrder === localPhaseOrder && endDiff > 220;
+      remoteRound === this.roundCount &&
+      remotePhaseOrder === localPhaseOrder &&
+      endDiff > 220;
 
     // Never let an older remote state pull us backwards. We only resync when
     // the remote state is ahead, or when both sides are in the same phase and
     // only the timing has drifted.
     if (remoteRound < this.roundCount) return;
-    if (remoteRound === this.roundCount && remotePhaseOrder < localPhaseOrder) return;
+    if (remoteRound === this.roundCount && remotePhaseOrder < localPhaseOrder)
+      return;
 
     if (roundBehind || phaseBehind || samePhaseDrift) {
       this.roundCount = remoteRound;
