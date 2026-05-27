@@ -96,11 +96,15 @@ io.on("connection", (socket) => {
       serverTime: now,
     });
 
+    // Send the last known snapshot to the whole room reliably so late-joiners
+    // or clients that missed volatile updates receive a consistent initial state.
     if (roomState.latestScene0State) {
-      socket.emit("scene0", {
+      const snapshot = {
         ...roomState.latestScene0State,
         serverTime: now,
-      });
+      };
+
+      io.to(room).emit("scene0", snapshot);
     }
   });
 

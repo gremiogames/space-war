@@ -1253,21 +1253,21 @@ class scene0 extends Phaser.Scene {
     // Tiro inicia escondido e aparece ao clicar no botao.
     this.tiro = this.physics.add
       .image(x, y - 80, "sheet", "plasma_1")
-      .setScale(3.2)
+      .setScale(2.8)
       .setVisible(false);
 
     // Tiro do bot inicia escondido e sai do jogador superior.
     this.botTiro = this.physics.add
       .image(x, yOpposite + 80, "sheet", "plasma_1")
-      .setScale(3.2)
+      .setScale(2.8)
       .setFlipY(true)
       .setVisible(false);
 
     // Configurar física do tiro
     this.tiro.body.setAllowGravity(false);
-    this.tiro.setDisplaySize(30, 50);
+    this.tiro.setDisplaySize(26, 44);
     this.botTiro.body.setAllowGravity(false);
-    this.botTiro.setDisplaySize(30, 50);
+    this.botTiro.setDisplaySize(26, 44);
 
     // Escudo inicia escondido sobre o player.
     const initialPlayerShieldPosition = this.getPlayerShieldPosition(
