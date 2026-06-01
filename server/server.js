@@ -26,6 +26,13 @@ function getOrCreateRoomMatchState(room) {
   return roomMatchState.get(room);
 }
 
+function resetRoomMatchState(room) {
+  roomMatchState.set(room, {
+    matchStartAt: null,
+    latestScene0State: null,
+  });
+}
+
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
 
@@ -44,6 +51,12 @@ io.on("connection", (socket) => {
         serverTime: Date.now(),
       });
     }
+  });
+
+  socket.on("reset-room-match", (room) => {
+    if (!room) return;
+
+    resetRoomMatchState(room);
   });
 
   socket.on("select-player", (room, player) => {

@@ -119,6 +119,7 @@ class room extends Phaser.Scene {
         fillColor: 0x16411f,
         hoverColor: 0x225d2c,
         onClick: () => {
+          this.game.socket.emit("reset-room-match", this.game.room);
           this.game.socket.emit("join-room", this.game.room);
           this.game.socket.emit("select-player", this.game.room, "android");
           this.scene.stop("room");
