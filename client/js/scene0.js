@@ -413,10 +413,27 @@ class scene0 extends Phaser.Scene {
     if (remoteRound === this.roundCount && remotePhaseOrder < localPhaseOrder)
       return;
 
+    const previousPhase = this.roundPhase;
+
     if (roundBehind || phaseBehind || samePhaseDrift) {
       this.roundCount = remoteRound;
       this.roundPhase = remotePhase;
       this.roundPhaseEndsAtMs = remoteEndsAt;
+
+      if (remotePhase === "countdown") {
+        this.roundActive = true;
+        this.enableAllButtons();
+      } else if (remotePhase === "action") {
+        this.roundActive = false;
+        this.disableAllButtons(true);
+
+        if (previousPhase !== "action") {
+          this.executeRoundActions();
+        }
+      } else {
+        this.roundActive = false;
+        this.disableAllButtons(true);
+      }
     }
   }
 
