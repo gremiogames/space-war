@@ -118,6 +118,7 @@ class scene0 extends Phaser.Scene {
     this.scene0MatchStartListener = null;
     this.serverClockOffsetMs = 0;
     this.serverClockSamples = 0;
+    this.currentMatchSessionId = null;
     this.roundPhase = "waiting";
     this.roundPhaseEndsAtMs = 0;
     this.matchStartedAtMs = 0;
@@ -286,6 +287,19 @@ class scene0 extends Phaser.Scene {
     // Ignore remote updates when the local match is over to avoid
     // reactivating sprites that were intentionally hidden on defeat.
     if (this.gameOver) return;
+    if (
+      this.currentMatchSessionId === null &&
+      typeof remotePlayer.matchSessionId === "number"
+    ) {
+      this.currentMatchSessionId = remotePlayer.matchSessionId;
+    }
+    if (
+      typeof remotePlayer.matchSessionId === "number" &&
+      this.currentMatchSessionId &&
+      remotePlayer.matchSessionId !== this.currentMatchSessionId
+    ) {
+      return;
+    }
 
     this.player2.setActive(true).setVisible(true);
 
@@ -386,6 +400,14 @@ class scene0 extends Phaser.Scene {
   }
 
   maybeResyncRoundState(remotePlayer) {
+    if (
+      typeof remotePlayer.matchSessionId === "number" &&
+      this.currentMatchSessionId &&
+      remotePlayer.matchSessionId !== this.currentMatchSessionId
+    ) {
+      return;
+    }
+
     const remoteRound = remotePlayer.roundCount;
     const remotePhase = remotePlayer.roundPhase;
     const remoteEndsAt = remotePlayer.roundPhaseEndsAtMs;
@@ -460,6 +482,7 @@ class scene0 extends Phaser.Scene {
         shotsLoaded: this.shotsLoaded,
         lives: this.player1Lives,
         selectedAction: this.selectedAction,
+        matchSessionId: this.currentMatchSessionId || null,
         roundCount: this.roundCount,
         roundPhase: this.roundPhase,
         roundPhaseEndsAtMs: this.roundPhaseEndsAtMs,
@@ -815,8 +838,12 @@ class scene0 extends Phaser.Scene {
     }
   }
 
-  startMatchClock(matchStartAt) {
+  startMatchClock(matchStartAt, matchSessionId = null) {
     if (typeof matchStartAt !== "number") return;
+
+    if (typeof matchSessionId === "number") {
+      this.currentMatchSessionId = matchSessionId;
+    }
 
     this.matchStartedAtMs = matchStartAt;
     this.roundCount = 0;
@@ -934,6 +961,8 @@ class scene0 extends Phaser.Scene {
     this.botSelectedAction = null;
     this.shieldActive = false;
     this.botShieldActive = false;
+    this.currentMatchSessionId = null;
+    this.botEnabled = false;
     this.__coinsRewardGranted = false;
 
     if (this.shieldTimerEvent) {
@@ -1005,6 +1034,7 @@ class scene0 extends Phaser.Scene {
     this.lastScene0StateSignature = "";
     this.serverClockOffsetMs = 0;
     this.serverClockSamples = 0;
+    this.currentMatchSessionId = null;
     this.roundPhase = "waiting";
     this.roundPhaseEndsAtMs = 0;
     this.matchStartedAtMs = 0;
@@ -1120,13 +1150,17 @@ class scene0 extends Phaser.Scene {
         console.log("[scene0-match-start] received", {
           ts: Date.now(),
           serverTime: payload?.serverTime,
+          matchSessionId: payload?.matchSessionId,
           matchStartAt: payload?.matchStartAt,
         });
 
         this.syncServerClock(payload?.serverTime);
 
         if (typeof payload?.matchStartAt === "number") {
-          this.startMatchClock(payload.matchStartAt);
+          this.startMatchClock(
+            payload.matchStartAt,
+            payload?.matchSessionId,
+          );
           if (this.scene0ReadyRetryEvent) {
             this.scene0ReadyRetryEvent.remove(false);
             this.scene0ReadyRetryEvent = null;

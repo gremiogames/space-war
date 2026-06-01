@@ -18,6 +18,7 @@ const roomMatchState = new Map();
 function getOrCreateRoomMatchState(room) {
   if (!roomMatchState.has(room)) {
     roomMatchState.set(room, {
+      matchSessionId: 0,
       matchStartAt: null,
       latestScene0State: null,
     });
@@ -27,7 +28,9 @@ function getOrCreateRoomMatchState(room) {
 }
 
 function resetRoomMatchState(room) {
+  const previousState = getOrCreateRoomMatchState(room);
   roomMatchState.set(room, {
+    matchSessionId: (previousState.matchSessionId || 0) + 1,
     matchStartAt: null,
     latestScene0State: null,
   });
@@ -47,6 +50,7 @@ io.on("connection", (socket) => {
       roomState.matchStartAt > Date.now()
     ) {
       socket.emit("scene0-match-start", {
+        matchSessionId: roomState.matchSessionId,
         matchStartAt: roomState.matchStartAt,
         serverTime: Date.now(),
       });
@@ -79,13 +83,22 @@ io.on("connection", (socket) => {
     // Broadcast to the whole room (including sender) so every client can
     // continuously correct local clock drift from serverTime.
     const roomState = getOrCreateRoomMatchState(room);
+    const matchSessionId = roomState.matchSessionId;
     roomState.latestScene0State = {
       ...state,
+      matchSessionId:
+        typeof state?.matchSessionId === "number"
+          ? state.matchSessionId
+          : matchSessionId,
       serverTime: Date.now(),
     };
 
     io.to(room).volatile.emit("scene0", {
       ...state,
+      matchSessionId:
+        typeof state?.matchSessionId === "number"
+          ? state.matchSessionId
+          : matchSessionId,
       serverTime: Date.now(),
     });
   });
@@ -105,6 +118,7 @@ io.on("connection", (socket) => {
     }
 
     io.to(room).emit("scene0-match-start", {
+      matchSessionId: roomState.matchSessionId,
       matchStartAt: roomState.matchStartAt,
       serverTime: now,
     });
@@ -114,6 +128,7 @@ io.on("connection", (socket) => {
     if (roomState.latestScene0State) {
       const snapshot = {
         ...roomState.latestScene0State,
+        matchSessionId: roomState.matchSessionId,
         serverTime: now,
       };
 
