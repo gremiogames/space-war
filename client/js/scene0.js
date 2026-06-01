@@ -823,6 +823,10 @@ class scene0 extends Phaser.Scene {
     this.actionExecuted = false;
     this.selectedAction = null;
     this.botSelectedAction = null;
+    this.playerActionAppliedRound = -1;
+    this.botActionAppliedRound = -1;
+    this.lastScene0SyncAt = 0;
+    this.lastScene0StateSignature = "";
     this.beginPreparePhase(matchStartAt - 1000);
     this.updateRoundClockState();
   }
@@ -995,6 +999,15 @@ class scene0 extends Phaser.Scene {
     this.returnToMenuEvent = null;
     this.rewardText = null;
     this.rewardCoinIcon = null;
+    this.playerActionAppliedRound = -1;
+    this.botActionAppliedRound = -1;
+    this.lastScene0SyncAt = 0;
+    this.lastScene0StateSignature = "";
+    this.serverClockOffsetMs = 0;
+    this.serverClockSamples = 0;
+    this.roundPhase = "waiting";
+    this.roundPhaseEndsAtMs = 0;
+    this.matchStartedAtMs = 0;
 
     this.events.once("shutdown", () => {
       if (this.time) {

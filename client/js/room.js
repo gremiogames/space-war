@@ -43,6 +43,10 @@ class room extends Phaser.Scene {
       if (this.menuMusic && this.menuMusic.isPlaying) {
         this.menuMusic.stop();
       }
+      if (this.game.socket && this.onPlayerSelected) {
+        this.game.socket.off("player-selected", this.onPlayerSelected);
+        this.onPlayerSelected = null;
+      }
     });
 
     if (!hasRoomFromUrl) {
@@ -133,7 +137,7 @@ class room extends Phaser.Scene {
       this.game.socket.emit("join-room", this.game.room);
     }
 
-    this.game.socket.on("player-selected", (player) => {
+    this.onPlayerSelected = (player) => {
       console.log(
         "Player selected in room:",
         this.game.room,
@@ -157,7 +161,9 @@ class room extends Phaser.Scene {
         });
       }
       this.scene.start("scene0", artifacts);
-    });
+    };
+
+    this.game.socket.on("player-selected", this.onPlayerSelected);
   }
 
   createShopButton() {
