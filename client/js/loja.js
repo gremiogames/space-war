@@ -4,7 +4,7 @@ import TelaInicial from "./telainicial.js";
 const OWNED_SHIPS_STORAGE_KEY = "spaceWarOwnedShips";
 const EQUIPPED_SHIP_STORAGE_KEY = "spaceWarEquippedShip";
 const SHIPS_UPDATED_EVENT = "space-war-ships-updated";
-const TEST_UNLOCK_ALL_SHIPS = true;
+const TEST_UNLOCK_ALL_SHIPS = false;
 
 const BASE_SHIPS = [
   {
@@ -69,7 +69,7 @@ const BASE_SHIPS = [
     name: "Vanguarda Esmeralda",
     description:
       "Nave espacial básica, refletindo as cores dos campos verdes da Terra",
-    price: 150,
+    price: 50,
     textureKey: "ship-atlas-core",
     assetPath: "assets/map-assets/spritesheet.png",
     frameRect: { x: 266, y: 477, w: 64, h: 64 },
@@ -99,7 +99,7 @@ const BASE_SHIPS = [
     id: "falcao-elite",
     name: "Falcão de Elite",
     description: "Nave Espacial de combate avançada da frota humana",
-    price: 500,
+    price: 100,
     textureKey: "ship-falcao-elite",
     assetPath: "assets/player_b_m.png",
     frameWidth: 64,
@@ -127,7 +127,7 @@ const BASE_SHIPS = [
     id: "fragata-rubi",
     name: "Space Y",
     description: "Nave espacial da frota Humana de Defesa",
-    price: 250,
+    price: 50,
     textureKey: "ship-atlas-core",
     assetPath: "assets/map-assets/spritesheet.png",
     frameRect: { x: 68, y: 741, w: 64, h: 64 },
@@ -158,7 +158,7 @@ const BASE_SHIPS = [
     name: "Space Z",
     description:
       "Nave espacial dourada da frota Humana de Defesa, só que dourada...",
-    price: 250,
+    price: 50,
     textureKey: "ship-atlas-core",
     assetPath: "assets/map-assets/spritesheet.png",
     frameRect: { x: 68, y: 741, w: 64, h: 64 },
@@ -188,7 +188,7 @@ const BASE_SHIPS = [
     id: "fragata-neon-azul",
     name: "Nave Espacial da Tropa Marciana",
     description: "Nave de combate avançada da frota marciana",
-    price: 0,
+    price: 75,
     textureKey: "ship-fragata-neon",
     assetPath: "assets/Alien-Frigate(3).png",
     frameWidth: 110,
@@ -219,7 +219,7 @@ const BASE_SHIPS = [
     name: "OVNI dourado",
     description:
       "As vezes você olha para o sol e acha que está vendo o Sol, mas na verdade é só essa nave",
-    price: 0,
+    price: 75,
     textureKey: "ship-fragata-neon",
     assetPath: "assets/Alien-Frigate(3).png",
     frameWidth: 110,
@@ -250,7 +250,7 @@ const BASE_SHIPS = [
     name: "Nave da Tropa Marciana Camuflada",
     description:
       "Os Humanos se perguntam com o que ela se camufla, nunca descobriram",
-    price: 0,
+    price: 75,
     textureKey: "ship-fragata-neon",
     assetPath: "assets/Alien-Frigate(3).png",
     frameWidth: 110,
@@ -280,7 +280,7 @@ const BASE_SHIPS = [
     id: "fragata-neon",
     name: "Troféu do General",
     description: "Espaçonave marciana do General Et. Bilu",
-    price: 700,
+    price: 150,
     textureKey: "ship-fragata-neon",
     assetPath: "assets/Alien-Frigate(3).png",
     frameWidth: 110,
@@ -304,7 +304,7 @@ const BASE_SHIPS = [
         { x: 12, y: -70 },
       ],
     },
-    defaultOwned: true,
+    defaultOwned: false,
   },
 ];
 
