@@ -4,6 +4,8 @@ import tutorial from "./tutorial.js";
 import TelaInicial from "./telainicial.js";
 import preloader from "./preloader.js";
 import room from "./room.js";
+import finalFeliz from "./final-feliz.js";
+import finalTriste from "./final-triste.js";
 import "./banco.js";
 import "./loja.js";
 
@@ -30,6 +32,8 @@ class Game extends Phaser.Game {
     this.scene.add("room", room);
     this.scene.add("tutorial", tutorial);
     this.scene.add("scene0", scene0);
+    this.scene.add("finalFeliz", finalFeliz); // ← novo
+    this.scene.add("finalTriste", finalTriste);
 
     const roomFromQuery = new URLSearchParams(location.search).get("room");
     if (roomFromQuery) {

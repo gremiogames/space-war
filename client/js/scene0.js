@@ -1748,6 +1748,7 @@ class scene0 extends Phaser.Scene {
 
     const showVictory = () => {
       this.player2.setVisible(false).setActive(false);
+      this.__matchResult = "vitoria";
       this.showEndMessageWithFade("Vitória!");
       this.scheduleReturnToMenu();
     };
@@ -1823,6 +1824,7 @@ class scene0 extends Phaser.Scene {
 
     const showDefeat = () => {
       this.player.setVisible(false);
+      this.__matchResult = "derrota";
       this.showEndMessageWithFade("Derrota!", "#ff3355");
       this.scheduleReturnToMenu();
     };
@@ -2132,7 +2134,9 @@ class scene0 extends Phaser.Scene {
         if (this.gameMusic && this.gameMusic.isPlaying) {
           this.gameMusic.stop();
         }
-        this.scene.start("telainicial");
+        const destino =
+        this.__matchResult === "vitoria" ? "finalFeliz" : "finalTriste";
+        this.scene.start(destino);
       };
 
       if (this.cameras && this.cameras.main) {
