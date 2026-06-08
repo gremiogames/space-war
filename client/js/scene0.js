@@ -449,9 +449,14 @@ class scene0 extends Phaser.Scene {
         this.roundActive = false;
         this.disableAllButtons(true);
 
-        if (previousPhase !== "action") {
-          this.executeRoundActions();
-        }
+        
+       if (previousPhase !== "action") {
+    // Aguarda um pequeno delay para garantir que o botSelectedAction chegou
+    this.time.delayedCall(200, () => {
+      if (!this.scene || !this.scene.isActive() || this.gameOver) return;
+      this.executeRoundActions();
+    });
+  }
       } else {
         this.roundActive = false;
         this.disableAllButtons(true);
@@ -527,7 +532,10 @@ class scene0 extends Phaser.Scene {
 
     if (!force && elapsed < requiredInterval) return;
 
-    const emitter = this.game.socket.volatile || this.game.socket;
+    const hasAction = this.selectedAction != null;
+    const emitter = hasAction
+      ? this.game.socket
+      : this.game.socket.volatile || this.game.socket;
     try {
       console.log("[scene0] emit", {
         ts: Date.now(),

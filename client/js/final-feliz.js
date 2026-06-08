@@ -6,13 +6,13 @@ export default class finalFeliz extends Phaser.Scene {
   }
 
   create() {
-    function calcularTijolinhos() {
-      const key = "spaceWarPartidas";
+    function calcularTijolinhos(userId) {
+      const key = `spaceWarPartidas_${userId}`;
       const partidas = parseInt(localStorage.getItem(key) || "0", 10);
       localStorage.setItem(key, String(partidas + 1));
 
       if (partidas === 0) return 100;       // 1ª partida
-      if (partidas <= 5) return 50;         // 2ª até 6ª
+      if (partidas <= 7) return 50;         // 2ª até 8ª
       return 25;
     }
     
@@ -23,12 +23,15 @@ export default class finalFeliz extends Phaser.Scene {
         if (res.error) {
           console.error(res.error);
         } else {
+          const payload = JSON.parse(atob(res.credential.split('.')[1]));
+          const userId = payload.sub;
+
           axios
             .post(
               "https://feira-de-jogos.dev.br/api/v2/credit",
               {
                 product: 67, // id do jogo cadastrado no banco de dados da Feira de Jogos
-                value: calcularTijolinhos(), // crédito em tijolinhos
+                value: calcularTijolinhos(userId), // crédito em tijolinhos
               },
               {
                 headers: {

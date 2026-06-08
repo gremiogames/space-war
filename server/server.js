@@ -93,7 +93,9 @@ io.on("connection", (socket) => {
       serverTime: Date.now(),
     };
 
-    io.to(room).volatile.emit("scene0", {
+    const hasAction = state?.player?.selectedAction != null;
+    const emitter = hasAction ? io.to(room) : io.to(room).volatile;
+    emitter.emit("scene0", {
       ...state,
       matchSessionId:
         typeof state?.matchSessionId === "number"
