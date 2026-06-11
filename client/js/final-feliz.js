@@ -11,9 +11,9 @@ export default class finalFeliz extends Phaser.Scene {
       const partidas = parseInt(localStorage.getItem(key) || "0", 10);
       localStorage.setItem(key, String(partidas + 1));
 
-      if (partidas === 0) return 75; // 1ª partida
-      if (partidas <= 4) return 50; // 2ª até 6ª
-      return 25;
+      if (partidas === 0) return 100; // 1ª partida
+      if (partidas <= 4) return 75; // 2ª até 6ª
+      return 50;
     }
 
     globalThis.google.accounts.id.initialize({
